@@ -1,0 +1,40 @@
+.wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 5px;
+  height: 98vh; }
+  .wrapper .buttonWrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center; }
+    .wrapper .buttonWrapper .button {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100px;
+      height: 50px;
+      border: 1px solid black;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      cursor: pointer; }
+      .wrapper .buttonWrapper .button:active {
+        transition: transform 0.1s linear;
+        transform: scale(0.95); }
+  .wrapper #freqLabel {
+    text-align: center;
+    width: 80%; }
+    .wrapper #freqLabel #freq_text {
+      text-align: right;
+      width: 50px; }
+    .wrapper #freqLabel #freq {
+      width: 100%; }
+  .wrapper #volLabel {
+    text-align: center;
+    width: 80%; }
+  .wrapper #visualizer {
+    width: 70%;
+    height: 30%; }
+
+/*# sourceMappingURL=style.css.map */
