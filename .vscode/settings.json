@@ -1,3 +1,6 @@
 {
-  "python.defaultInterpreterPath": "Python/backend-soundplayer/.venv/Scripts/python.exe"
+  "python.defaultInterpreterPath": "${workspaceFolder}/Python/backend-soundplayer/.venv/Scripts/python.exe",
+  "code-runner.executorMap": {
+    "python": "uv run python"
+  }
 }
