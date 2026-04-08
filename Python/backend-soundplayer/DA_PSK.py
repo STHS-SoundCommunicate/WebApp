@@ -35,7 +35,7 @@ data_wav = data_wav * np.iinfo(np.int16).max
 data_wav = data_wav.astype(np.int16)
 
 output_file = "./wav/test_02.wav" #実行するときに絶対 Python/backend-soundplayer で実行すること
-with wave.open(output_file, "w") as wf:
+with wave.open(output_file, "wb") as wf:
 	wf.setnchannels(1)
 	wf.setsampwidth(2)
 	wf.setframerate(fs)
