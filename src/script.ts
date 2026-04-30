@@ -14,6 +14,8 @@ vol.on('input', () => {
 	}
 });
 
+// https://dotnsf.blog.jp/archives/1072493704.html
+
 const char = $('#charInput');
 char.on('change', () => {
 	const value: string = String(char.val());
