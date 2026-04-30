@@ -22,14 +22,11 @@
       .wrapper .buttonWrapper .button:active {
         transition: transform 0.1s linear;
         transform: scale(0.95); }
-  .wrapper #freqLabel {
+  .wrapper #charLabel {
     text-align: center;
     width: 80%; }
-    .wrapper #freqLabel #freq_text {
-      text-align: right;
-      width: 50px; }
-    .wrapper #freqLabel #freq {
-      width: 100%; }
+    .wrapper #charLabel #charInput {
+      width: 80%; }
   .wrapper #volLabel {
     text-align: center;
     width: 80%; }

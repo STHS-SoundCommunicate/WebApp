@@ -31,15 +31,12 @@
     }
   }
 
-  #freqLabel {
+  #charLabel {
     text-align: center;
     width: 80%;
-    #freq_text {
-      text-align: right;
-      width: 50px;
-    }
-    #freq {
-      width: 100%;
+    #charInput {
+      width: 80%;
+      //height: 40px;
     }
   }
   #volLabel {

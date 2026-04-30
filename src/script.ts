@@ -1,4 +1,6 @@
 import $ from 'jquery';
+import * as Tone from 'tone'
+
 const button = $('#playButton');
 button.on('click', toggleSound);
 
@@ -12,20 +14,11 @@ vol.on('input', () => {
 	}
 });
 
-const freq = $('#freq');
-const freq_text = $('#freq_text');
-freq.on('input', () => {
-	const value = Number(freq.val());
-	freq_text.val(value);
+const char = $('#charInput');
+char.on('change', () => {
+	const value: string = String(char.val());
 	if(lastOscillator) {
-		lastOscillator.frequency.value = value;
-	}
-});
-freq_text.on('change', () => {
-	const value = Number(freq_text.val());
-	freq.val(value);
-	if(lastOscillator) {
-		lastOscillator.frequency.value = value;
+
 	}
 });
 
@@ -46,7 +39,7 @@ function toggleSound() { // https://developer.mozilla.org/ja/docs/Web/API/BaseAu
 		const oscillator = audioCtx.createOscillator();
 		const gainNode = audioCtx.createGain();
 		oscillator.type = 'sine';
-		oscillator.frequency.value = Number(freq.val());
+		// oscillator.frequency.value = Number(freq.val());
 		gainNode.gain.value = Number(vol.val()); // 0 ~ 1
 		gainNode.connect(audioCtx.destination);
 		oscillator.connect(gainNode);
@@ -74,8 +67,8 @@ function visualize() { // https://developer.mozilla.org/ja/docs/Web/API/Web_Audi
 		lastAnalyser.fftSize = 2048;
 		let bufferLength = lastAnalyser.frequencyBinCount;
 		let dataArray = new Uint8Array(bufferLength);
-		lastAnalyser.getByteTimeDomainData(dataArray);
-
+		// lastAnalyser.getByteTimeDomainData(dataArray); // 時間領域(db-t図)
+		lastAnalyser.getByteFrequencyData(dataArray); // 周波数領域(db-f図)
 		canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);
 		canvasCtx.fillStyle = "rgb(200, 200, 200)";
 		canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
@@ -85,8 +78,8 @@ function visualize() { // https://developer.mozilla.org/ja/docs/Web/API/Web_Audi
 		let sliceWidth = WIDTH / bufferLength;
 		let x = 0;
 		for(let i = 0; i < bufferLength; ++i) {
-			let v = dataArray[i] / 128.0;
-			let y = (v * HEIGHT) / 2;
+			let v = dataArray[i] / 255;
+			let y = HEIGHT - (v * HEIGHT);
 			if(i === 0) {
 				canvasCtx.moveTo(x, y);
 			} else {
