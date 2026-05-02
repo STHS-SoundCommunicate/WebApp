@@ -1,59 +1,24 @@
 import $ from 'jquery';
-import * as Tone from 'tone'
+// import * as Tone from 'tone'
 
-const button = $('#playButton');
-button.on('click', toggleSound);
-
-const vol = $('#vol');
-vol.on('input', () => {
-	const value = vol.val();
-	if(!value || Array.isArray(value)) return;
-	$('#vol_value').text(value);
-	if(lastGainNode) {
-		lastGainNode.gain.value = Number(value);
-	}
+const button = $('#toggleButton');
+const stats = $('#stats');
+button.on('click', () => {
+	stats.text('マイクを起動中です...');
+	toggleSound();
 });
 
-// https://dotnsf.blog.jp/archives/1072493704.html
 
-const char = $('#charInput');
-char.on('change', () => {
-	const value: string = String(char.val());
-	if(lastOscillator) {
-
-	}
-});
+// https://qiita.com/7shi/items/3866fac27ba488ec74c7
 
 const audioCtx = new AudioContext;
+const analyser = audioCtx.createAnalyser();
+const gain = audioCtx.createGain();
+gain.gain.value = 1;
+gain.connect(analyser);
+analyser.fftSize = 2048;
 // https://developer.mozilla.org/ja/docs/Web/API/AudioContext
-let isPlaying: boolean = false;
-let lastOscillator: OscillatorNode | null = null;
-let lastGainNode: GainNode | null = null;
-let lastAnalyser: AnalyserNode | null = null;
-
-function toggleSound() { // https://developer.mozilla.org/ja/docs/Web/API/BaseAudioContext/createOscillator
-	if(isPlaying) {
-		lastOscillator?.stop();
-		lastOscillator = null;
-		lastGainNode = null;
-		lastAnalyser = null;
-	} else {
-		const oscillator = audioCtx.createOscillator();
-		const gainNode = audioCtx.createGain();
-		oscillator.type = 'sine';
-		// oscillator.frequency.value = Number(freq.val());
-		gainNode.gain.value = Number(vol.val()); // 0 ~ 1
-		gainNode.connect(audioCtx.destination);
-		oscillator.connect(gainNode);
-		oscillator.start();
-		lastOscillator = oscillator;
-		lastGainNode = gainNode;
-		let analyser = audioCtx.createAnalyser();
-		lastOscillator.connect(analyser);
-		lastAnalyser = analyser;
-	}
-	isPlaying = !isPlaying;
-}
+let stream: MediaStream | null = null;
 
 const canvas = document.getElementById('visualizer') as HTMLCanvasElement;
 const canvasCtx = canvas.getContext('2d') as CanvasRenderingContext2D;
@@ -63,14 +28,33 @@ canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);
 canvasCtx.fillStyle = "rgb(200, 200, 200)";
 canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
 
-function visualize() { // https://developer.mozilla.org/ja/docs/Web/API/Web_Audio_API/Visualizations_with_Web_Audio_API
-	if(lastAnalyser instanceof AnalyserNode) {
+function toggleSound() {
+	if(stream instanceof MediaStream) {
+		stream.getTracks().forEach((t) => t.stop());
+		stream = null;
+		stats.text('録音を停止しました');
+		audioCtx.suspend().then();
+	} else {
+		audioCtx.resume().then(() => {
+			navigator.mediaDevices.getUserMedia({ audio: true }).then((s) => {
+				stream = s;
+				audioCtx.createMediaStreamSource(stream).connect(gain);
+				stats.text('録音中です...');
+			}).catch((e) => {
+				console.error(e);
+				stats.text(`エラーが発生しました。(${e})`);
+			});
+		});
+	}
+}
 
-		lastAnalyser.fftSize = 2048;
-		let bufferLength = lastAnalyser.frequencyBinCount;
+function visualize() { // https://developer.mozilla.org/ja/docs/Web/API/Web_Audio_API/Visualizations_with_Web_Audio_API
+	if(stream instanceof MediaStream) {
+
+		let bufferLength = analyser.frequencyBinCount;
 		let dataArray = new Uint8Array(bufferLength);
-		// lastAnalyser.getByteTimeDomainData(dataArray); // 時間領域(db-t図)
-		lastAnalyser.getByteFrequencyData(dataArray); // 周波数領域(db-f図)
+		analyser.getByteTimeDomainData(dataArray); // 時間領域(db-t図)
+		// analyser.getByteFrequencyData(dataArray); // 周波数領域(db-f図)
 		canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);
 		canvasCtx.fillStyle = "rgb(200, 200, 200)";
 		canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);

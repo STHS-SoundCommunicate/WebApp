@@ -8,7 +8,8 @@
   .wrapper .buttonWrapper {
     display: flex;
     justify-content: center;
-    align-items: center; }
+    align-items: center;
+    flex-direction: column; }
     .wrapper .buttonWrapper .button {
       display: flex;
       justify-content: center;

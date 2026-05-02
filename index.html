@@ -5,28 +5,23 @@
 	<meta charset="UTF-8">
 	<meta name="viewport"
 		  content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-	<title>PlaySound</title>
+	<title>ListenSound</title>
 	<link rel="stylesheet" href="src/style.css">
 </head>
 
 <body>
 	<div class="wrapper">
 		<div class="buttonWrapper">
-			<button class="button" id="playButton">
-				PlaySound
+			<button class="button" id="toggleButton">
+				ListenSound
 			</button>
+			<span id="stats"></span>
 		</div>
-		<label id="charLabel">
-			送信内容<br>
-<!--			<input type="text" id="charInput" placeholder="Text...">-->
-			<textarea id="charInput" name="message" rows="5" cols="33" placeholder="Text..."></textarea>
-		</label>
-		<label id="volLabel">
-			Volume: <span id="vol_value">0.3</span><br>
-			<input type="range" id="vol" min="0" max="1" step="0.01" value="0.3">
-		</label>
-		<canvas id="visualizer">
-
+		<div id="charLabel">
+			送信結果
+			<div id="text_area"></div>
+		</div>
+		<canvas id="visualizer"> <!-- mic level-->
 		</canvas>
 	</div>
 </body>
