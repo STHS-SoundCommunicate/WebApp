@@ -13,10 +13,28 @@ for(let i: number = 0; i < _const.channels; ++i) {
 const SAMPLES_COUNT: number = Math.trunc(_const.sampling_rate / BAUD_RATE);
 
 
+
 const button: JQuery = $('#toggleButton');
-const stats: JQuery = $('#stats');
-const result: JQuery = $('#result');
 button.on('click', toggleSound);
+
+const stats: JQuery = $('#stats');
+
+const result: JQuery = $('#result');
+function log(s: string): void {
+	const height: number | undefined = result.height();
+	if(height === undefined) return;
+	result.text(result.text() + `\n${s}`);
+	result.scrollTop(result[0].scrollHeight - height);
+}
+function clearLog(): void { result.text(''); }
+
+
+
+function decodeUTF8(buffer: Uint8Array): string {
+	const decoder = new TextDecoder('utf-8'); // 冗長
+	return decoder.decode(buffer);
+}
+
 
 
 const audioCtx = new AudioContext( { sampleRate: _const.sampling_rate } );
@@ -58,12 +76,20 @@ async function toggleSound() {
 						"SAMPLES_COUNT": SAMPLES_COUNT,
 						"PREAMBLE": _const.preamble,
 						"SAMPLE_RATE": _const.sampling_rate,
-						"SIGNAL_FREQS": SIGNAL_FREQS
+						"SIGNAL_FREQS": SIGNAL_FREQS,
+						"BITS_PER_SIGNAL": _const.bits_per_signal
 					}
 				});
 				audioProcessorNode.port.onmessage = (e) => {
 					if(stream === undefined) return;
 					log(e.data);
+					if(e.data instanceof Uint8Array) {
+						let str = decodeUTF8(e.data);
+						log(str);
+					}
+					if(e.data === "correct preamble detected!") {
+						toggleSound();
+					}
 				};
 				log("audioProcessor is ready");
 			}
@@ -93,56 +119,6 @@ async function toggleSound() {
 	}
 }
 
-
-function log(s: string): void {
-	const height: number | undefined = result.height();
-	if(height === undefined) return;
-	result.text(result.text() + `\n${s}`);
-	result.scrollTop(result[0].scrollHeight - height);
-}
-function clearLog(): void {
-	result.text('');
-}
-
-
-function encodeUTF8(str: string): Uint8Array {
-	const encoder = new TextEncoder; // utf-8 only
-	return encoder.encode(str);
-}
-
-function str2bits(str: string): Uint8Array {
-	let result: number[] = [];
-	encodeUTF8(str).forEach((byte) => {
-		for(let i: number = 0; i < 8; ++i) {
-			result.push((byte >> (7 - i)) & 1);
-		}
-	});
-	return new Uint8Array(result);
-}
-
-// log(`[${str2bits('abc').join(', ')}]`); // debug
-
-function decodeUTF8(buffer: Uint8Array): string {
-	const decoder = new TextDecoder('utf-8'); // 冗長
-	return decoder.decode(buffer);
-}
-
-// function symbol2str(symbols: Uint8Array): string {
-//
-// }
-
-// function readSymbol(): number {
-// 	let s = readSamples(samples);
-// 	if(s.length < samples) {
-// 		throw new Error('samples.length < samples');
-// 	}
-// 	return detect_symbol(s);
-// }
-
-
-// function symbol2text(symbols) {
-//
-// }
 
 
 const canvas = document.getElementById('visualizer') as HTMLCanvasElement;
