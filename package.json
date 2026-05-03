@@ -1,5 +1,5 @@
 {
-  "name": "sound_player",
+  "name": "webapp",
   "version": "1.0.0",
   "main": "index.html",
   "scripts": {
@@ -11,14 +11,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/STHS-SoundCommunicate/SoundPlayer.git"
+    "url": "git+https://github.com/STHS-SoundCommunicate/WebApp.git"
   },
   "author": "yuiful",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/STHS-SoundCommunicate/SoundPlayer/issues"
+    "url": "https://github.com/STHS-SoundCommunicate/WebApp/issues"
   },
-  "homepage": "https://github.com/STHS-SoundCommunicate/SoundPlayer#readme",
+  "homepage": "https://github.com/STHS-SoundCommunicate/WebApp#readme",
   "description": "",
   "dependencies": {
     "@types/jquery": "^4.0.0",
