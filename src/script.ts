@@ -53,7 +53,7 @@ function decodeUTF8(buffer: Uint8Array): string {
 
 const audioCtx = new AudioContext( { sampleRate: _const.sampling_rate } );
 const analyser: AnalyserNode = audioCtx.createAnalyser(); // debug
-analyser.fftSize = 2048;
+analyser.fftSize = 2048; // 2048
 
 
 // https://qiita.com/takatama/items/4fe3fe787264f1f44515#%E5%AD%A6%E3%81%B6%E6%8A%80%E8%A1%93
@@ -72,7 +72,7 @@ async function toggleSound() {
 		stream.getTracks().forEach((t) => t.stop());
 		log('Microphone is stopped');
 		stream = undefined;
-		stats.text('録音を停止しました');
+		// stats.text('録音を停止しました');
 		await audioCtx.suspend();
 		log('audioCtx suspended');
 	} else {
@@ -101,8 +101,7 @@ async function toggleSound() {
 					if(e.data instanceof Uint8Array) {
 						let str = decodeUTF8(e.data);
 						log(str);
-					}
-					if(e.data === "correct preamble detected!") {
+						stats.text("受信しました: " + str);
 						toggleSound();
 					}
 				};
@@ -114,14 +113,17 @@ async function toggleSound() {
 			stream = await navigator.mediaDevices.getUserMedia(
 				{
 					audio: {
-						echoCancellation: true,
+						echoCancellation: false,
+						noiseSuppression: false,
 						sampleRate: _const.sampling_rate,
-						channelCount: _const.channels
+						channelCount: 1,
+						autoGainControl: false
+						// volume: 1.0
 					}
 				}
 			);
 			stream.getTracks().forEach((t) => {
-				t.getSettings().channelCount = _const.channels;
+				t.getSettings().channelCount = 1;
 			});
 			audioCtx.createMediaStreamSource(stream).connect(audioProcessorNode);
 			audioCtx.createMediaStreamSource(stream).connect(analyser); // debug

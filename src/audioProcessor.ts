@@ -126,82 +126,82 @@ class audioProcessor extends AudioWorkletProcessor {
 		input: Float32Array[][],
 		output: Float32Array[][], // 不要？
 		parameters: any // 不要？
-	): boolean { // 128サンプルごとに呼び出される Float32は-1.0~1.0
+	): boolean { // 128サンプルごとに呼び出される 値域は-1.0 ~ 1.0
 		const inputs = input[0][0];
 		if(!inputs) return true;
 
 		this.stackBuffer.add(inputs); // 128サンプルずつすべてスタックする
 
-		if(this.stackBuffer.length >= this.SAMPLE_COUNT * 80){ // overshoot読み込み用 TODO: 足りない分は待機するように
+		if(this.stackBuffer.length < this.SAMPLE_COUNT * 80){
+			return true;
+		} // overshoot読み込み用 TODO: 足りない分は待機するように
 
-			let samples: Float32Array = this.stackBuffer.readSamples(this.HALF_SAMPLE_COUNT);
+		let samples: Float32Array = this.stackBuffer.readSamples(this.HALF_SAMPLE_COUNT);
 
-			const symbol: number = this.modulator.detectSymbol(samples);
-			this.addSymbol(symbol);
-			this.recents = concat(this.recents.slice(this.HALF_SAMPLE_COUNT), samples);
+		const symbol: number = this.modulator.detectSymbol(samples);
+		this.addSymbol(symbol);
+		this.recents = concat(this.recents.slice(this.HALF_SAMPLE_COUNT), samples);
 
-			// this.port.postMessage(`[preamble] ${symbol}, [${this.symbols.join(', ')}]`);
-			// this.log(`[preamble] ${symbol}, [${this.stackBuffer.length}]`);
-			// if(this.symbols.length >= this.PREAMBLE_LEN * 2) {} // 起動後最速でやらない限り大丈夫
+		// this.log(`[preamble] ${symbol}, [${this.symbols.join(', ')}]`);
+		// if(this.symbols.length >= this.PREAMBLE_LEN * 2) {} // 起動後最速でやらない限り大丈夫
 
-			let window_1: Uint8Array = new Uint8Array(this.PREAMBLE_LEN);
-			let window_2: Uint8Array = new Uint8Array(this.PREAMBLE_LEN);
-			for(let i: number = 0; i < this.PREAMBLE_LEN*2; ++i) {
-				let p: number = (this.symbols_index + i - 1) % this.symbols.length;
-				if(i%2 === 0) {
-					window_2[i/2] = this.symbols[p];
-				} else {
-					window_1[Math.floor(i/2)] = this.symbols[p];
+		let window_1: Uint8Array = new Uint8Array(this.PREAMBLE_LEN);
+		let window_2: Uint8Array = new Uint8Array(this.PREAMBLE_LEN);
+		for(let i: number = 0; i < this.PREAMBLE_LEN*2; ++i) {
+			let p: number = (this.symbols_index + i - 1) % this.symbols.length;
+			if(i%2 === 0) {
+				window_2[i/2] = this.symbols[p];
+			} else {
+				window_1[Math.floor(i/2)] = this.symbols[p];
+			}
+		}
+
+		if(isEqual(this.PREAMBLE, window_1) || isEqual(this.PREAMBLE, window_2)) {
+
+			let phase_offset: number = isEqual(this.PREAMBLE, window_2) ? 0 : this.HALF_SAMPLE_COUNT;
+			let temp_max: number = 0;
+			let start_preamble: number = phase_offset;
+			for(let i: number = start_preamble; i < phase_offset + this.HALF_SAMPLE_COUNT; ++i) {
+				let score = this.modulator.getScore(this.recents.slice(i, i + this.HALF_SAMPLE_COUNT), this.SIGNAL_FREQS[0]);
+				if(score > temp_max) {
+					temp_max = score;
+					start_preamble = i;
 				}
 			}
-			if(isEqual(this.PREAMBLE, window_1) || isEqual(this.PREAMBLE, window_2)) {
 
-				let phase_offset: number = isEqual(this.PREAMBLE, window_2) ? 0 : this.HALF_SAMPLE_COUNT;
-				let temp_max: number = 0;
-				let start_preamble: number = phase_offset;
-				for(let i: number = start_preamble; i < phase_offset + this.HALF_SAMPLE_COUNT; ++i) {
-					let score = this.modulator.getScore(this.recents.slice(i, i + this.HALF_SAMPLE_COUNT), this.SIGNAL_FREQS[0]);
-					if(score > temp_max) {
-						temp_max = score;
-						start_preamble = i;
-					}
+			let header_index = start_preamble + (this.SAMPLE_COUNT * this.PREAMBLE_LEN);
+			let buf_size = this.recents.length;
+			let buf = this.recents.slice(Math.min(header_index, buf_size));
+			let overshoot = Math.max(0, header_index - buf_size);
+			let stream_chunk: Float32Array = this.stackBuffer.readSamples(overshoot + 6 * this.SAMPLE_COUNT - buf.length);
+			let header: StackBuffer = new StackBuffer(concat(buf, stream_chunk).slice(overshoot));
+
+			let pl_hi = this.modulator.detectSymbol(header.readSamples(this.SAMPLE_COUNT));
+			let pl_lo = this.modulator.detectSymbol(header.readSamples(this.SAMPLE_COUNT));
+			let payload_length = (pl_hi << 4) | pl_lo;
+
+			let mi_hi = this.modulator.detectSymbol(header.readSamples(this.SAMPLE_COUNT));
+			let mi_lo = this.modulator.detectSymbol(header.readSamples(this.SAMPLE_COUNT));
+			let message_id = (mi_hi << 4) | mi_lo;
+
+			let c8_hi = this.modulator.detectSymbol(header.readSamples(this.SAMPLE_COUNT));
+			let c8_lo = this.modulator.detectSymbol(header.readSamples(this.SAMPLE_COUNT));
+			let crc_raw = (c8_hi << 4) | c8_lo;
+			let crc_data = [pl_hi, pl_lo, mi_hi, mi_lo]; // TODO: 負の数を扱わないならUint8にする。
+			if(crc_raw === this.crc(crc_data)){
+				this.log('crc check passed'); // プリアンブル検出
+				this.log("correct preamble detected!");
+
+				let payloads: StackBuffer = new StackBuffer(this.stackBuffer.readSamples(this.SAMPLE_COUNT * payload_length));
+				let payload_symbols: number[] = [];
+				for(let i: number = 0; i < payload_length; ++i) {
+					payload_symbols.push(this.modulator.detectSymbol(payloads.readSamples(this.SAMPLE_COUNT)));
 				}
+				let payload_bits = this.symbol2bits(payload_symbols);
+				this.log(payload_bits); // postMessage
 
-				let header_index = start_preamble + (this.SAMPLE_COUNT * this.PREAMBLE_LEN);
-				let buf_size = this.recents.length;
-				let buf = this.recents.slice(Math.min(header_index, buf_size));
-				let overshoot = Math.max(0, header_index - buf_size);
-				let stream_chunk: Float32Array = this.stackBuffer.readSamples(overshoot + 6 * this.SAMPLE_COUNT - buf.length);
-				let header: StackBuffer = new StackBuffer(concat(buf, stream_chunk).slice(overshoot));
-
-				let pl_hi = this.modulator.detectSymbol(header.readSamples(this.SAMPLE_COUNT));
-				let pl_lo = this.modulator.detectSymbol(header.readSamples(this.SAMPLE_COUNT));
-				let payload_length = (pl_hi << 4) | pl_lo;
-
-				let mi_hi = this.modulator.detectSymbol(header.readSamples(this.SAMPLE_COUNT));
-				let mi_lo = this.modulator.detectSymbol(header.readSamples(this.SAMPLE_COUNT));
-				let message_id = (mi_hi << 4) | mi_lo;
-
-				let c8_hi = this.modulator.detectSymbol(header.readSamples(this.SAMPLE_COUNT));
-				let c8_lo = this.modulator.detectSymbol(header.readSamples(this.SAMPLE_COUNT));
-				let crc_raw = (c8_hi << 4) | c8_lo;
-				let crc_data = [pl_hi, pl_lo, mi_hi, mi_lo]; // TODO: 負の数を扱わないならUint8にする。
-				if(crc_raw === this.crc(crc_data)){
-					this.log('crc check passed'); // プリアンブル検出
-
-					let payloads: StackBuffer = new StackBuffer(this.stackBuffer.readSamples(this.SAMPLE_COUNT * payload_length));
-					let payload_symbols: number[] = [];
-					for(let i: number = 0; i < payload_length; ++i) {
-						payload_symbols.push(this.modulator.detectSymbol(payloads.readSamples(this.SAMPLE_COUNT)));
-					}
-					let payload_bits = this.symbol2bits(payload_symbols);
-					this.log(payload_bits); // postMessage
-
-					this.log("correct preamble detected!");
-				} else {
-					this.log('crc check failed');
-				}
-
+			} else {
+				this.log('crc check failed');
 			}
 
 		}
