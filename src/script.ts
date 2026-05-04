@@ -65,75 +65,84 @@ let audioProcessorNode: AudioWorkletNode;
 
 // https://developer.mozilla.org/ja/docs/Web/API/AudioContext
 let stream: MediaStream | undefined;
-
+let isLocked: boolean = false; // 多重防止
 async function toggleSound() {
-	if(stream instanceof MediaStream) {
-		log('Stopping microphone...');
-		stream.getTracks().forEach((t) => t.stop());
-		log('Microphone is stopped');
-		stream = undefined;
-		// stats.text('録音を停止しました');
-		await audioCtx.suspend();
-		log('audioCtx suspended');
-	} else {
+	if(isLocked) return;
+	isLocked = true;
+
+	try {
+
+		if(stream instanceof MediaStream) {
+			log('Stopping microphone...');
+			stream.getTracks().forEach((t) => t.stop());
+			log('Microphone is stopped');
+			stream = undefined;
+			// stats.text('録音を停止しました');
+			button.text('Listen');
+			await audioCtx.suspend();
+			log('audioCtx suspended');
+			return;
+		}
 
 		clearLog();
 
 		await audioCtx.resume();
 		log('audioCtx resumed');
 
-		try {
-			if(audioProcessorNode === undefined) {
-				await audioCtx.audioWorklet.addModule(processorUrl);
-				audioProcessorNode = new AudioWorkletNode(audioCtx, 'audio-processor', {
-					processorOptions: {
-						"SAMPLES_COUNT": SAMPLES_COUNT,
-						"PREAMBLE": _const.preamble,
-						"SAMPLE_RATE": _const.sampling_rate,
-						"SIGNAL_FREQS": SIGNAL_FREQS,
-						"BITS_PER_SIGNAL": _const.bits_per_signal
-					}
-				});
 
-				audioProcessorNode.port.onmessage = (e) => {
-					if(stream === undefined) return;
-					log(e.data);
-					if(e.data instanceof Uint8Array) {
-						let str = decodeUTF8(e.data);
-						log(str);
-						stats.text("受信しました: " + str);
-						toggleSound();
-					}
-				};
-
-				log("audioProcessor is ready");
-			}
-
-			log("Preparing microphone...");
-			stream = await navigator.mediaDevices.getUserMedia(
-				{
-					audio: {
-						echoCancellation: false,
-						noiseSuppression: false,
-						sampleRate: _const.sampling_rate,
-						channelCount: 1,
-						autoGainControl: false
-						// volume: 1.0
-					}
+		if(audioProcessorNode === undefined) {
+			await audioCtx.audioWorklet.addModule(processorUrl);
+			audioProcessorNode = new AudioWorkletNode(audioCtx, 'audio-processor', {
+				processorOptions: {
+					"SAMPLES_COUNT": SAMPLES_COUNT,
+					"PREAMBLE": _const.preamble,
+					"SAMPLE_RATE": _const.sampling_rate,
+					"SIGNAL_FREQS": SIGNAL_FREQS,
+					"BITS_PER_SIGNAL": _const.bits_per_signal
 				}
-			);
-			stream.getTracks().forEach((t) => {
-				t.getSettings().channelCount = 1;
 			});
-			audioCtx.createMediaStreamSource(stream).connect(audioProcessorNode);
-			audioCtx.createMediaStreamSource(stream).connect(analyser); // debug
-			log("Microphone is ready");
-			stats.text('録音中です...');
-			visualize();
-		} catch(e) {
-			console.error(e);
-			log(`Error: (${e})`);
+
+			audioProcessorNode.port.onmessage = (e) => {
+				if(stream === undefined) return;
+				if(e.data instanceof Uint8Array) {
+					let str = decodeUTF8(e.data);
+					log(str);
+					stats.text("受信しました: " + str);
+					toggleSound();
+				} else {
+					log(e.data);
+				}
+			};
+
+			log("audioProcessor is ready");
 		}
+
+		log("Preparing microphone...");
+		stream = await navigator.mediaDevices.getUserMedia(
+			{
+				audio: {
+					echoCancellation: false,
+					noiseSuppression: false,
+					sampleRate: _const.sampling_rate,
+					channelCount: 1,
+					autoGainControl: false
+					// volume: 1.0
+				}
+			}
+		);
+		const source: MediaStreamAudioSourceNode = audioCtx.createMediaStreamSource(stream);
+		source.connect(audioProcessorNode);
+		source.connect(analyser); // debug
+		log("Microphone is ready");
+		stats.text('録音中です...');
+		button.text('Stop');
+		visualize();
+
+	} catch(e) {
+		console.error(e);
+		log(`Error: (${e})`);
+	} finally {
+		isLocked = false; // try内のreturn前に実行される。
 	}
 }
 

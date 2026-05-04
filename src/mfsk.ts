@@ -25,17 +25,17 @@ export class mfsk extends base {
 			s_prev2 = s_prev;
 			s_prev = s;
 		}
-		return (s_prev2 * s_prev2) + (s_prev * s_prev) - (coeff * s_prev * s_prev2); // ほんとは平方根だけど、具体的な数字は必要ない
+		return (s_prev2 * s_prev2) + (s_prev * s_prev) - (coeff * s_prev * s_prev2); // ほんとは平方根だけど、比較できればいいので具体的な数字は必要ない
 	}
 
 	detectSymbol(samples: Float32Array): number{
 		let max_freq: number = -1; // はたしてやっていい初期化なのだろうか
-		let max_db: number;
+		let max_db: number = -Infinity;
 		this.signal_freqs.forEach((f, i) => {
 			let db = this.goertzel(samples, f);
 			if(max_freq === -1 || db > max_db) {
 				max_db = db;
-				max_freq = i;
+				max_freq = i; // 何個目のチャンネルか
 			}
 		});
 		return max_freq; // return index not [Hz]
