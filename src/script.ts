@@ -1,6 +1,20 @@
 import $ from 'jquery'; // 最悪なくせる
 // import * as Tone from 'tone'
 
+// function encodeUTF8(str: string): Uint8Array {
+// 	const encoder = new TextEncoder; // utf-8 only
+// 	return encoder.encode(str);
+// }
+//
+// function str2bits(str: string): Uint8Array {
+// 	let result: number[] = [];
+// 	encodeUTF8(str).forEach((byte) => {
+// 		for(let i: number = 0; i < 8; ++i) {
+// 			result.push((byte >> (7 - i)) & 1);
+// 		}
+// 	});
+// 	return new Uint8Array(result);
+// }
 
 import _const from './const.json'; // 定数読み込み
 const SIGNAL_MS: number = 1 / _const.bps * _const.bits_per_signal * 1000; // 1シグナルの時間[ms]
@@ -80,6 +94,7 @@ async function toggleSound() {
 						"BITS_PER_SIGNAL": _const.bits_per_signal
 					}
 				});
+
 				audioProcessorNode.port.onmessage = (e) => {
 					if(stream === undefined) return;
 					log(e.data);
@@ -91,6 +106,7 @@ async function toggleSound() {
 						toggleSound();
 					}
 				};
+
 				log("audioProcessor is ready");
 			}
 
@@ -134,7 +150,7 @@ function visualize() { // https://developer.mozilla.org/ja/docs/Web/API/Web_Audi
 
 	requestAnimationFrame(visualize);
 
-	let bufferLength = analyser.frequencyBinCount;
+	let bufferLength: number = analyser.frequencyBinCount;
 	let dataArray = new Uint8Array(bufferLength);
 	// analyser.getByteTimeDomainData(dataArray); // 時間領域(db-t図)
 	analyser.getByteFrequencyData(dataArray); // 周波数領域(db-f図)
@@ -144,11 +160,11 @@ function visualize() { // https://developer.mozilla.org/ja/docs/Web/API/Web_Audi
 	canvasCtx.lineWidth = 2;
 	canvasCtx.strokeStyle = "rgb(0, 0, 0)";
 	canvasCtx.beginPath();
-	let sliceWidth = WIDTH / bufferLength;
-	let x = 0;
-	for(let i = 0; i < bufferLength; ++i) {
-		let v = dataArray[i] / 255;
-		let y = HEIGHT - (v * HEIGHT);
+	let sliceWidth: number = WIDTH / bufferLength;
+	let x: number = 0;
+	for(let i: number = 0; i < bufferLength; ++i) {
+		let v: number = dataArray[i] / 255;
+		let y: number = HEIGHT - (v * HEIGHT);
 		if(i === 0) {
 			canvasCtx.moveTo(x, y);
 		} else {
