@@ -6,8 +6,8 @@ export abstract class base {
 		protected readonly SAMPLING_RATE: number
 	) {}
 
-	abstract detectSymbol(samples: Float32Array): number;
+	public abstract detectSymbol(samples: Float32Array): number;
 
-	abstract getScore(samples: Float32Array, freq: number): number; // [db] or something
+	public abstract getScore(samples: Float32Array, freq: number): number; // [db] or something
 
 }

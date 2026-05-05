@@ -19,10 +19,10 @@ import $ from 'jquery'; // 最悪なくせる
 import _const from './const.json'; // 定数読み込み
 const SIGNAL_MS: number = 1 / _const.bps * _const.bits_per_signal * 1000; // 1シグナルの時間[ms]
 const BAUD_RATE: number = 1000 / SIGNAL_MS; // 1秒で送るシグナル数[baud]
-let SIGNAL_FREQS: number[] = []; // 使用しているシグナル周波数
-for(let i: number = 0; i < _const.channels; ++i) {
-	SIGNAL_FREQS.push(_const.signal_freq_start + i * _const.signal_freq_width);
-}
+// let SIGNAL_FREQS: number[] = []; // 使用しているシグナル周波数
+const SIGNAL_FREQS: Uint16Array = new Uint16Array(_const.channels); // 0 ~ 65535
+for(let i: number = 0; i < _const.channels; ++i)
+	SIGNAL_FREQS[i] = _const.signal_freq_start + (i * _const.signal_freq_width);
 // const samples = Math.trunc((_const.sampling_rate * signal_ms) / 1000);
 const SAMPLES_COUNT: number = Math.trunc(_const.sampling_rate / BAUD_RATE);
 
@@ -74,7 +74,7 @@ async function toggleSound() {
 
 		if(stream instanceof MediaStream) {
 			log('Stopping microphone...');
-			stream.getTracks().forEach((t) => t.stop());
+			stream.getTracks().forEach((t: MediaStreamTrack): void => t.stop());
 			log('Microphone is stopped');
 			stream = undefined;
 			// stats.text('録音を停止しました');
@@ -102,10 +102,10 @@ async function toggleSound() {
 				}
 			});
 
-			audioProcessorNode.port.onmessage = (e) => {
+			audioProcessorNode.port.onmessage = (e: MessageEvent): void => {
 				if(stream === undefined) return;
 				if(e.data instanceof Uint8Array) {
-					let str = decodeUTF8(e.data);
+					let str: string = decodeUTF8(e.data);
 					log(str);
 					stats.text("受信しました: " + str);
 					toggleSound();
@@ -156,13 +156,13 @@ canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);
 canvasCtx.fillStyle = "rgb(200, 200, 200)";
 canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
 
-function visualize() { // https://developer.mozilla.org/ja/docs/Web/API/Web_Audio_API/Visualizations_with_Web_Audio_API
+function visualize(): void { // https://developer.mozilla.org/ja/docs/Web/API/Web_Audio_API/Visualizations_with_Web_Audio_API
 	if(stream === undefined) return;
 
 	requestAnimationFrame(visualize);
 
 	let bufferLength: number = analyser.frequencyBinCount;
-	let dataArray = new Uint8Array(bufferLength);
+	let dataArray: Uint8Array<ArrayBuffer> = new Uint8Array(bufferLength);
 	// analyser.getByteTimeDomainData(dataArray); // 時間領域(db-t図)
 	analyser.getByteFrequencyData(dataArray); // 周波数領域(db-f図)
 	canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);
