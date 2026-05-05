@@ -17,7 +17,8 @@ function isEqual(a: ArrayLike<number>, b: ArrayLike<number>): boolean {
 
 
 
-import { mfsk } from './mfsk.ts';
+import { mfsk } from './modules/mfsk.ts';
+import { modulator } from "./modules/modulator.ts";
 
 class StackBuffer {
 
@@ -31,9 +32,8 @@ class StackBuffer {
 
 	public readSamples(count?: number): Float32Array {
 		if(count === undefined) count = this.length;
-		if(count > this.length) {
+		if(count > this.length)
 			throw new Error('count > length');
-		}
 		const sample: Float32Array = this.buffer.slice(0, count);
 		this.buffer = this.buffer.slice(count); // 一度readしたものは削除する。
 		return sample;
@@ -60,7 +60,7 @@ class audioProcessor extends AudioWorkletProcessor {
 	private symbols_index: number = 0;
 	private recents: Float32Array;
 
-	private modulator: mfsk;
+	private m: modulator;
 
 	private generator: Generator;
 
@@ -79,7 +79,7 @@ class audioProcessor extends AudioWorkletProcessor {
 		this.symbols = new Uint8Array(this.PREAMBLE_LEN * 2); // 疑似リングバッファ
 		this.recents = new Float32Array(this.HALF_SAMPLE_COUNT * 9);
 
-		this.modulator = new mfsk(this.SAMPLING_RATE, this.SIGNAL_FREQS);
+		this.m = new mfsk(this.SAMPLING_RATE, this.SIGNAL_FREQS);
 
 		this.generator = this.processing();
 	}
@@ -135,11 +135,8 @@ class audioProcessor extends AudioWorkletProcessor {
 	): boolean { // 128サンプルごとに呼び出される 値域は-1.0 ~ 1.0
 		const inputs: Float32Array = input[0][0];
 		if(!inputs) return true;
-
 		this.stackBuffer.add(inputs); // 128サンプルずつすべてスタックする
-
 		this.generator.next();
-
 		return true;
 	}
 
@@ -148,7 +145,7 @@ class audioProcessor extends AudioWorkletProcessor {
 		while(true) {
 
 			let samples: Float32Array = yield* this.waitSamples(this.HALF_SAMPLE_COUNT);
-			const symbol: number = this.modulator.detectSymbol(samples);
+			const symbol: number = this.m.detectSymbol(samples);
 			this.addSymbol(symbol);
 			this.recents = concat(this.recents.slice(this.HALF_SAMPLE_COUNT), samples);
 
@@ -170,7 +167,7 @@ class audioProcessor extends AudioWorkletProcessor {
 				let temp_max: number = 0;
 				let start_preamble: number = phase_offset;
 				for(let i: number = start_preamble; i < phase_offset + this.HALF_SAMPLE_COUNT; ++i) {
-					let score: number = this.modulator.getScore(this.recents.slice(i, i + this.HALF_SAMPLE_COUNT), this.SIGNAL_FREQS[0]);
+					let score: number = this.m.getScore(this.recents.slice(i, i + this.HALF_SAMPLE_COUNT), this.SIGNAL_FREQS[0]);
 					if(score > temp_max) {
 						temp_max = score;
 						start_preamble = i;
@@ -184,16 +181,16 @@ class audioProcessor extends AudioWorkletProcessor {
 				let stream_chunk: Float32Array = yield* this.waitSamples(overshoot + 6 * this.SAMPLE_COUNT - buf.length);
 				let header: StackBuffer = new StackBuffer(concat(buf, stream_chunk).slice(overshoot));
 
-				let pl_hi: number = this.modulator.detectSymbol(header.readSamples(this.SAMPLE_COUNT)),
-					pl_lo: number = this.modulator.detectSymbol(header.readSamples(this.SAMPLE_COUNT));
+				let pl_hi: number = this.m.detectSymbol(header.readSamples(this.SAMPLE_COUNT)),
+					pl_lo: number = this.m.detectSymbol(header.readSamples(this.SAMPLE_COUNT));
 				let payload_length: number = (pl_hi << 4) | pl_lo;
 
-				let mi_hi: number = this.modulator.detectSymbol(header.readSamples(this.SAMPLE_COUNT)),
-					mi_lo: number = this.modulator.detectSymbol(header.readSamples(this.SAMPLE_COUNT));
+				let mi_hi: number = this.m.detectSymbol(header.readSamples(this.SAMPLE_COUNT)),
+					mi_lo: number = this.m.detectSymbol(header.readSamples(this.SAMPLE_COUNT));
 				let message_id: number = (mi_hi << 4) | mi_lo;
 
-				let c8_hi: number = this.modulator.detectSymbol(header.readSamples(this.SAMPLE_COUNT)),
-					c8_lo: number = this.modulator.detectSymbol(header.readSamples(this.SAMPLE_COUNT));
+				let c8_hi: number = this.m.detectSymbol(header.readSamples(this.SAMPLE_COUNT)),
+					c8_lo: number = this.m.detectSymbol(header.readSamples(this.SAMPLE_COUNT));
 				let crc_raw :number = (c8_hi << 4) | c8_lo;
 				// let crc_data = [pl_hi, pl_lo, mi_hi, mi_lo]; // 0~255なはず
 				let crc_data: Uint8Array = new Uint8Array([pl_hi, pl_lo, mi_hi, mi_lo]);
@@ -207,7 +204,7 @@ class audioProcessor extends AudioWorkletProcessor {
 
 					let payload_symbols: number[] = [];
 					for(let _: number = 0; _ < payload_length; ++_)
-						payload_symbols.push(this.modulator.detectSymbol(payloads.readSamples(this.SAMPLE_COUNT)));
+						payload_symbols.push(this.m.detectSymbol(payloads.readSamples(this.SAMPLE_COUNT)));
 					this.log(`[${payload_symbols.join(', ')}]`);
 					let payload_bits: Uint8Array = this.symbol2bits(payload_symbols);
 

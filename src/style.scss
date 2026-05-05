@@ -32,6 +32,76 @@
     }
   }
 
+  .popover {
+    width: 80%;
+    height: 50%;
+    margin: auto;
+    max-width: 800px;
+    .container {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      h2 {
+        margin: 10px;
+        padding-bottom: 10px;
+        text-align: center;
+        border-bottom: 2px dotted black;
+      }
+      .detail_content {
+
+        text-align: left;
+        margin: 0 10px 10px;
+
+        display: flex;
+        gap: 10px;
+
+        overflow: hidden;
+
+        .keys {
+          width: 70%;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .values {
+          width: 30%;
+          display: flex;
+          flex-direction: column;
+          //gap: 4px;
+          input {
+            height: 18px;
+            width: 80%;
+          }
+        }
+
+      }
+    }
+
+    .close_button {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: absolute;
+      z-index: 100;
+      top: 0;
+      right: 0;
+      height: 3rem;
+      width: 3rem;
+      margin: 5px;
+      padding: 10px;
+      font-size: 1.2rem;
+      &:hover {
+        background-color: #f66;
+        color: white;
+        cursor: pointer;
+        box-shadow: 0 0 5px #f66;
+      }
+      &:active {
+        box-shadow: none;
+      }
+    }
+  }
+
   #charLabel {
     text-align: center;
     display: flex;

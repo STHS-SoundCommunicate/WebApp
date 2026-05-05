@@ -1,6 +1,6 @@
 // https://qiita.com/hiro-hiro/items/9879a297cf5b30c474e2
 
-export abstract class base {
+export abstract class modulator {
 
 	protected constructor(
 		protected readonly SAMPLING_RATE: number

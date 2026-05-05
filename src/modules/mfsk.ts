@@ -2,9 +2,9 @@
 
 // const TITLE: string = "MFSK";
 
-import { base } from './base.ts';
+import { modulator } from './modulator.ts';
 
-export class mfsk extends base {
+export class mfsk extends modulator {
 
 	constructor(
 		SAMPLING_RATE: number,
@@ -18,8 +18,8 @@ export class mfsk extends base {
 		const k: number = Math.round((N * freq) / this.SAMPLING_RATE);
 		const omega: number = (2 * Math.PI * k) / N;
 		const coeff: number = 2 * Math.cos(omega);
-		let s_prev: number = 0,
-			s_prev2: number = 0;
+		let s_prev: number = 0;
+		let s_prev2: number = 0;
 		for (let i: number = 0; i < N; i++) {
 			const s: number = samples[i] + (coeff * s_prev) - s_prev2;
 			s_prev2 = s_prev;
@@ -38,7 +38,7 @@ export class mfsk extends base {
 				max_freq = i; // 何個目のチャンネルか
 			}
 		});
-		return max_freq; // return index not [Hz]
+		return max_freq; // return index, not [Hz]
 	}
 
 	public getScore(samples: Float32Array, freq: number): number {
