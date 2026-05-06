@@ -15,7 +15,8 @@ import $ from 'jquery'; // 最悪なくせる
 // 	return new Uint8Array(result);
 // }
 
-import _const from './const.json'; // 定数読み込み
+// ----- 定数関連 -----
+import _const from './const.json';
 
 const keys: JQuery = $(".keys");
 const values: JQuery = $(".values");
@@ -63,23 +64,21 @@ function SAMPLES_COUNT(): number {
 
 
 
-
 const button: JQuery = $('#toggleButton');
 button.on('click', toggleSound);
 
 const stats: JQuery = $('#stats');
 
 const result: JQuery = $('#result');
+const height: number = result.height() ?? 0;
 function log(s: string): void {
-	const height: number | undefined = result.height();
-	if(height === undefined) return;
-	result.text(result.text() + `\n${s}`);
+	result.text(result.text().slice(-10000) + `\n${s}`);
 	result.scrollTop(result[0].scrollHeight - height);
 }
 function clearLog(): void { result.text(''); }
 
+const decoder = new TextDecoder('utf-8'); // 冗長
 function decodeUTF8(buffer: Uint8Array): string {
-	const decoder = new TextDecoder('utf-8'); // 冗長
 	return decoder.decode(buffer);
 }
 
@@ -96,6 +95,9 @@ let audioProcessorNode: AudioWorkletNode;
 let stream: MediaStream | undefined;
 
 let isLocked: boolean = false; // 多重防止
+
+let bufferLength: number;
+let dataArray: Uint8Array<ArrayBuffer>;
 
 async function toggleSound() {
 	if(isLocked) return;
@@ -119,6 +121,8 @@ async function toggleSound() {
 
 		audioCtx = new AudioContext( { sampleRate: SAMPLING_RATE() } );
 		analyser = audioCtx.createAnalyser();
+		bufferLength = analyser.frequencyBinCount;
+		dataArray = new Uint8Array(bufferLength);
 		log('audioCtx created');
 
 		await audioCtx.audioWorklet.addModule(processorUrl);
@@ -188,8 +192,6 @@ canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
 function visualize(): void { // https://developer.mozilla.org/ja/docs/Web/API/Web_Audio_API/Visualizations_with_Web_Audio_API
 	if(stream === undefined) return;
 	requestAnimationFrame(visualize);
-	let bufferLength: number = analyser.frequencyBinCount;
-	let dataArray: Uint8Array<ArrayBuffer> = new Uint8Array(bufferLength);
 	// analyser.getByteTimeDomainData(dataArray); // 時間領域(db-t図)
 	analyser.getByteFrequencyData(dataArray); // 周波数領域(db-f図)
 	canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);

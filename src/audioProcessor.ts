@@ -1,6 +1,3 @@
-// AudioWorkletProcessorはブラウザ側に存在し、このクラスをそこに渡すので、IDE補完ができない。
-// https://developer.mozilla.org/ja/docs/Web/API/AudioWorkletProcessor
-
 function concat(arr1: Float32Array, arr2: Float32Array): Float32Array {
 	const newArray = new Float32Array(arr1.length + arr2.length);
 	newArray.set(arr1);
@@ -45,6 +42,9 @@ class StackBuffer {
 
 }
 
+// AudioWorkletProcessorはブラウザ側に存在し、このクラスをそこに渡すので、IDE補完ができない。
+// https://developer.mozilla.org/ja/docs/Web/API/AudioWorkletProcessor
+// @ts-ignore
 class audioProcessor extends AudioWorkletProcessor {
 
 	private readonly SAMPLE_COUNT: number;
@@ -64,6 +64,9 @@ class audioProcessor extends AudioWorkletProcessor {
 
 	private generator: Generator;
 
+	private readonly window_1: Uint8Array;
+	private readonly window_2: Uint8Array;
+
 	constructor(options: AudioWorkletNodeOptions) {
 		super();
 
@@ -82,9 +85,13 @@ class audioProcessor extends AudioWorkletProcessor {
 		this.m = new mfsk(this.SAMPLING_RATE, this.SIGNAL_FREQS);
 
 		this.generator = this.processing();
+
+		this.window_1 = new Uint8Array(this.PREAMBLE_LEN);
+		this.window_2 = new Uint8Array(this.PREAMBLE_LEN);
 	}
 
 	private log(s: any): void {
+		// @ts-ignore
 		this.port.postMessage(s);
 	}
 
@@ -93,11 +100,8 @@ class audioProcessor extends AudioWorkletProcessor {
 		symbols.forEach((s: number): void => {
 			c ^= s; // XOR
 			for(let _: number = 0; _ < 8; ++_) {
-				if(c & 0x80){
-					c = ((c << 1) ^ 0x07) & 0xFF;
-				} else {
-					c = (c << 1) & 0xFF;
-				}
+				if(c & 0x80) c = ((c << 1) ^ 0x07) & 0xFF;
+				else c = (c << 1) & 0xFF;
 			}
 		});
 		return c;
@@ -112,9 +116,7 @@ class audioProcessor extends AudioWorkletProcessor {
 		let bytes: number[] = [];
 		for(let i: number = 0; i < bits.length - 7; i += 8) {
 			let b: number = 0;
-			bits.slice(i, i + 8).forEach((bit: number): void => {
-				b = (b << 1) | bit;
-			});
+			bits.slice(i, i + 8).forEach((bit: number): void => { b = (b << 1) | bit; });
 			bytes.push(b);
 		}
 		return (new Uint8Array(bytes));
@@ -126,10 +128,12 @@ class audioProcessor extends AudioWorkletProcessor {
 	}
 
 	private *waitSamples(count: number): Generator<void, Float32Array, void> {
-		while(this.stackBuffer.length < count) yield;
+		while(count > this.stackBuffer.length) yield;
 		return this.stackBuffer.readSamples(count);
 	}
 
+
+	// noinspection JSUnusedGlobalSymbols
 	process (
 		input: Float32Array[][]
 	): boolean { // 128サンプルごとに呼び出される 値域は-1.0 ~ 1.0
@@ -140,6 +144,7 @@ class audioProcessor extends AudioWorkletProcessor {
 		return true;
 	}
 
+	private readonly crc_data: Uint8Array = new Uint8Array(4);
 	* processing(): Generator {
 
 		while(true) {
@@ -151,19 +156,17 @@ class audioProcessor extends AudioWorkletProcessor {
 
 			// this.log(`[preamble] ${symbol}, [${this.symbols.join(', ')}][${this.symbols_index}]`);
 
-			let window_1: Uint8Array = new Uint8Array(this.PREAMBLE_LEN);
-			let window_2: Uint8Array = new Uint8Array(this.PREAMBLE_LEN);
 			for(let i: number = 0; i < this.PREAMBLE_LEN; ++i) {
 				let p: number = this.symbols_index - 1 - (2*i) + this.symbols.length;
-				window_1[this.PREAMBLE_LEN - i - 1] = this.symbols[p % this.symbols.length];
-				window_2[this.PREAMBLE_LEN - i - 1] = this.symbols[(p-1) % this.symbols.length];
+				this.window_1[this.PREAMBLE_LEN - i - 1] = this.symbols[p % this.symbols.length];
+				this.window_2[this.PREAMBLE_LEN - i - 1] = this.symbols[(p-1) % this.symbols.length];
 			}
 
-			if(isEqual(this.PREAMBLE, window_1) || isEqual(this.PREAMBLE, window_2)) {
+			if(isEqual(this.PREAMBLE, this.window_1) || isEqual(this.PREAMBLE, this.window_2)) {
 
 				this.log("preamble detected");
 
-				let phase_offset: number = isEqual(this.PREAMBLE, window_2) ? 0 : this.HALF_SAMPLE_COUNT;
+				let phase_offset: number = isEqual(this.PREAMBLE, this.window_2) ? 0 : this.HALF_SAMPLE_COUNT;
 				let temp_max: number = 0;
 				let start_preamble: number = phase_offset;
 				for(let i: number = start_preamble; i < phase_offset + this.HALF_SAMPLE_COUNT; ++i) {
@@ -183,7 +186,7 @@ class audioProcessor extends AudioWorkletProcessor {
 
 				let pl_hi: number = this.m.detectSymbol(header.readSamples(this.SAMPLE_COUNT)),
 					pl_lo: number = this.m.detectSymbol(header.readSamples(this.SAMPLE_COUNT));
-				let payload_length: number = (pl_hi << 4) | pl_lo;
+				let payload_length: number = (pl_hi << 4) | pl_lo; // 16channelだから4シフトしてる？
 
 				let mi_hi: number = this.m.detectSymbol(header.readSamples(this.SAMPLE_COUNT)),
 					mi_lo: number = this.m.detectSymbol(header.readSamples(this.SAMPLE_COUNT));
@@ -193,8 +196,11 @@ class audioProcessor extends AudioWorkletProcessor {
 					c8_lo: number = this.m.detectSymbol(header.readSamples(this.SAMPLE_COUNT));
 				let crc_raw :number = (c8_hi << 4) | c8_lo;
 				// let crc_data = [pl_hi, pl_lo, mi_hi, mi_lo]; // 0~255なはず
-				let crc_data: Uint8Array = new Uint8Array([pl_hi, pl_lo, mi_hi, mi_lo]);
-				if(crc_raw === this.crc(crc_data)) {
+				this.crc_data[0] = pl_hi;
+				this.crc_data[1] = pl_lo;
+				this.crc_data[2] = mi_hi;
+				this.crc_data[3] = mi_lo;
+				if(crc_raw === this.crc(this.crc_data)) {
 
 					this.log("header crc check passed");
 
@@ -205,11 +211,10 @@ class audioProcessor extends AudioWorkletProcessor {
 					let payload_symbols: number[] = [];
 					for(let _: number = 0; _ < payload_length; ++_)
 						payload_symbols.push(this.m.detectSymbol(payloads.readSamples(this.SAMPLE_COUNT)));
-					this.log(`[${payload_symbols.join(', ')}]`);
+					this.log(`[${this.PREAMBLE.join(', ')}, ${this.crc_data.join(', ')}, ${c8_hi}, ${c8_lo}, ${payload_symbols.join(', ')}]`);
 					let payload_bits: Uint8Array = this.symbol2bits(payload_symbols);
 
 					this.log(payload_bits); // postMessage
-					this.stackBuffer.readSamples(); // debug
 
 				} else {
 					this.log("header crc check failed");
@@ -225,4 +230,5 @@ class audioProcessor extends AudioWorkletProcessor {
 
 }
 
+// @ts-ignore
 registerProcessor('audio-processor', audioProcessor);

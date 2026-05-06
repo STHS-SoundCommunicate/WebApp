@@ -31,7 +31,7 @@ export class mfsk extends modulator {
 	public detectSymbol(samples: Float32Array): number{
 		let max_freq: number = -1; // はたしてやっていい初期化なのだろうか
 		let max_db: number = -Infinity;
-		this.SIGNAL_FREQS.forEach((f: number, i: number) => {
+		this.SIGNAL_FREQS.forEach((f: number, i: number): void => {
 			let score: number = this.getScore(samples, f);
 			if(score > max_db) {
 				max_db = score;

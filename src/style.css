@@ -1,3 +1,9 @@
+:root {
+  touch-action: manipulation; }
+
+body:has([popover]:popover-open) {
+  overflow: hidden; }
+
 .wrapper {
   display: flex;
   justify-content: center;
@@ -24,12 +30,11 @@
         transition: transform 0.1s linear;
         transform: scale(0.95); }
   .wrapper .popover {
-    width: 80%;
-    height: 50%;
-    margin: auto;
+    height: fit-content;
+    width: fit-content;
     max-width: 800px; }
     .wrapper .popover .container {
-      height: 100%;
+      height: fit-content;
       display: flex;
       flex-direction: column; }
       .wrapper .popover .container h2 {
