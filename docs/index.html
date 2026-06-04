@@ -1,54 +1,10 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
 	<meta charset="UTF-8">
-	<meta name="viewport"
-		  content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-	<title>ListenSound</title>
-  <script type="module" crossorigin src="./assets/index-DYES9KOR.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-BygwMfWT.css">
+	<title>AcousticCommunication</title>
 </head>
-
-<body>
-	<div class="wrapper">
-		<div class="buttonWrapper">
-
-			<button type="button" class="button" id="detail" popovertarget="popup">
-				const.json
-			</button>
-			<div popover id="popup" class="popover">
-				<button type="button" class="close_button" popovertarget="popup" popovertargetaction="hide">
-					×
-				</button>
-				<div class="container">
-					<h2>Const.json</h2>
-					<div class="detail_content">
-						<div class="keys">
-
-						</div>
-						<label class="values">
-
-						</label>
-					</div>
-				</div>
-			</div>
-
-			<button class="button" id="toggleButton">
-				Listen
-			</button>
-			<span id="stats"></span>
-		</div>
-
-		<label id="charLabel">
-			受信結果<br>
-			<textarea id="result" readonly></textarea>
-		</label>
-
-		<canvas id="visualizer"> <!-- mic level-->
-		</canvas>
-	</div>
-</body>
-
-
+<script>
+	location.href = "receiver.html";
+</script>
 </html>

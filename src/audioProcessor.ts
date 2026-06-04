@@ -42,6 +42,18 @@ class StackBuffer {
 
 }
 
+export function crc(symbols: Uint8Array): number {
+	let c: number = 0;
+	symbols.forEach((s: number): void => {
+		c ^= s; // XOR
+		for(let _: number = 0; _ < 8; ++_) {
+			if(c & 0x80) c = ((c << 1) ^ 0x07) & 0xFF;
+			else c = (c << 1) & 0xFF;
+		}
+	});
+	return c;
+}
+
 // AudioWorkletProcessorはブラウザ側に存在し、このクラスをそこに渡すので、IDE補完ができない。
 // https://developer.mozilla.org/ja/docs/Web/API/AudioWorkletProcessor
 // @ts-ignore
@@ -93,18 +105,6 @@ class audioProcessor extends AudioWorkletProcessor {
 	private log(s: any): void {
 		// @ts-ignore
 		this.port.postMessage(s);
-	}
-
-	private crc(symbols: Uint8Array): number {
-		let c: number = 0;
-		symbols.forEach((s: number): void => {
-			c ^= s; // XOR
-			for(let _: number = 0; _ < 8; ++_) {
-				if(c & 0x80) c = ((c << 1) ^ 0x07) & 0xFF;
-				else c = (c << 1) & 0xFF;
-			}
-		});
-		return c;
 	}
 
 	private symbol2bits(symbols: number[]): Uint8Array {
@@ -200,7 +200,7 @@ class audioProcessor extends AudioWorkletProcessor {
 				this.crc_data[1] = pl_lo;
 				this.crc_data[2] = mi_hi;
 				this.crc_data[3] = mi_lo;
-				if(crc_raw === this.crc(this.crc_data)) {
+				if(crc_raw === crc(this.crc_data)) {
 
 					this.log("header crc check passed");
 

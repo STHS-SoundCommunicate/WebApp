@@ -1,67 +1,12 @@
 import $ from 'jquery'; // 最悪なくせる
 
-// function encodeUTF8(str: string): Uint8Array {
-// 	const encoder = new TextEncoder; // utf-8 only
-// 	return encoder.encode(str);
-// }
-//
-// function str2bits(str: string): Uint8Array {
-// 	let result: number[] = [];
-// 	encodeUTF8(str).forEach((byte) => {
-// 		for(let i: number = 0; i < 8; ++i) {
-// 			result.push((byte >> (7 - i)) & 1);
-// 		}
-// 	});
-// 	return new Uint8Array(result);
-// }
-
-// ----- 定数関連 -----
-import _const from './const.json';
-
-const keys: JQuery = $(".keys");
-const values: JQuery = $(".values");
-
-Object.entries(_const).forEach(([key, value]: [string, number | number[]]): void => {
-	keys.append($("<span>").text(`${key}:`));
-	let val: string;
-	const input: JQuery = $("<input>").attr('id', `const_${key}`);
-	if(value instanceof Array){
-		val = value.join(', ');
-		input.attr('type', 'text');
-	} else {
-		val = String(value);
-		input.attr('type', 'number');
-	}
-	input.val(val);
-	values.append(input);
-});
-
-function CHANNELS(): number { return Number($(`#const_channels`).val()); }
-function BITS_PER_SIGNAL(): number { return Number($(`#const_bits_per_signal`).val()); }
-function BPS(): number { return Number($(`#const_bps`).val()); }
-function SAMPLING_RATE(): number { return Number($(`#const_sampling_rate`).val()); }
-function SIGNAL_FREQ_START(): number { return Number($(`#const_signal_freq_start`).val()); }
-function SIGNAL_FREQ_WIDTH(): number { return Number($(`#const_signal_freq_width`).val()); }
-function PREAMBLE(): number[] {
-	let str: string = String($(`#const_preamble`).val());
-	return str.split(',').map(s => Number(s.trim()));
-}
-function SIGNAL_MS(): number { // 1シグナルの時間[ms]
-	return (1 / BPS()) * BITS_PER_SIGNAL() * 1000;
-}
-function BAUD_RATE(): number { // 1秒で送るシグナル数[baud]
-	return 1000 / SIGNAL_MS();
-}
-function SIGNAL_FREQS(): Uint16Array {
-	let list: Uint16Array = new Uint16Array(CHANNELS());
-	for(let i: number = 0; i < CHANNELS(); i++)
-		list[i] = SIGNAL_FREQ_START() + (i * SIGNAL_FREQ_WIDTH());
-	return list;
-}
-function SAMPLES_COUNT(): number {
-	return Math.floor(SAMPLING_RATE() / BAUD_RATE());
-}
-
+import {
+	BITS_PER_SIGNAL,
+	SAMPLING_RATE,
+	SIGNAL_FREQS,
+	SAMPLES_COUNT,
+	PREAMBLE
+} from "../baseScript.ts";
 
 
 const button: JQuery = $('#toggleButton');
@@ -90,7 +35,7 @@ let analyser: AnalyserNode;
 // https://qiita.com/takatama/items/4fe3fe787264f1f44515#%E5%AD%A6%E3%81%B6%E6%8A%80%E8%A1%93
 // https://zenn.dev/rerrah/articles/5b649722ffc3c2
 // @ts-ignore
-import processorUrl from "./audioProcessor.ts?worker&url"; // ビルド時のエラー回避
+import processorUrl from "../audioProcessor.ts?worker&url"; // ビルド時のエラー回避
 let audioProcessorNode: AudioWorkletNode;
 let stream: MediaStream | undefined;
 
