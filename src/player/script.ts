@@ -47,12 +47,43 @@ function generateWave(index: number, phase: number) {
 	let freq: number = SIGNAL_FREQS()[index];
 	let sample_rate: number = SAMPLING_RATE();
 	let n_signals: number = Number(sample_rate * SIGNAL_MS() / 1000);
-	let t = [];
-	for(let i: number = 0; i < n_signals; ++i) t.push(i / sample_rate);
 	let duration = n_signals / sample_rate;
-
 	let phase_next = phase + (2 * Math.PI * duration * freq) % (2 * Math.PI);
-	return [Math.sin(2  * Math.PI * freq * t[0] + phase), phase_next]; // TODO: rewrite
 
+	let sin = [];
+	for(let i: number = 0; i < n_signals; ++i) {
+		sin.push(Math.sin(2 * Math.PI * (i / sample_rate) + phase));
+	}
+
+	return [sin, phase_next];
+
+}
+
+// const audioCtx = new AudioContext;
+// const analyser = audioCtx.createAnalyser();
+// const bufferLength = analyser.frequencyBinCount;
+// const dataArray = new Uint8Array(bufferLength);
+
+function playSound(sinData: number[], sampleRate: number){
+	const audioCtx = new AudioContext;
+
+	// 2. AudioBufferの作成 (1チャンネル(モノラル), サンプル数, サンプリングレート)
+	const numberOfChannels = 1;
+	const bufferLength = sinData.length;
+	const audioBuffer = audioCtx.createBuffer(numberOfChannels, bufferLength, sampleRate);
+
+	// 3. バッファのチャンネルデータ（Float32Array）を取得し、sinデータをコピー
+	const channelData = audioBuffer.getChannelData(0);
+	channelData.set(sinData);
+
+	// 4. 再生用のソースノードを作成してバッファをセット
+	const sourceNode = audioCtx.createBufferSource();
+	sourceNode.buffer = audioBuffer;
+
+	// 5. ソースノードを出力先（スピーカー）に接続
+	sourceNode.connect(audioCtx.destination);
+
+	// 6. 再生開始
+	sourceNode.start();
 }
 
