@@ -3,7 +3,7 @@
   "bits_per_signal": 4,
   "bps": 200,
   "sampling_rate": 44100,
-  "signal_freq_start": 10000,
+  "signal_freq_start": 18000,
   "signal_freq_width": 125,
   "preamble": [0, 4, 8, 12]
 }
