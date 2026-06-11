@@ -1,0 +1,28 @@
+:root {
+  touch-action: manipulation; }
+
+.wrapper {
+  display: flex;
+  height: 98vh;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  width: 100%;
+  gap: 5px; }
+  .wrapper .charInput {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    justify-content: center;
+    align-items: center;
+    width: 70%; }
+    .wrapper .charInput #charLabel {
+      text-align: center;
+      width: 100%; }
+      .wrapper .charInput #charLabel #charArea {
+        width: 100%;
+        height: 150px;
+        border-radius: 10px;
+        resize: none; }
+
+/*# sourceMappingURL=player.css.map */

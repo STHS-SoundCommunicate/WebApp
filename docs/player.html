@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <title>PlaySound</title>
+  <script type="module" crossorigin src="./assets/player-HAP7TpBl.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/baseScript-CR9NWGtz.js">
+  <link rel="stylesheet" crossorigin href="./assets/baseScript-4R8RvZKQ.css">
+  <link rel="stylesheet" crossorigin href="./assets/player-CYXvHAG2.css">
+</head>
+<body>
+    <div class="wrapper">
+        <a href="receiver.html">Listener</a>
+        <div class="buttons">
+            <button type="button" class="button" id="detail" popovertarget="popup">
+                const.json
+            </button>
+            <button type="button" class="button" id="genButton">
+                Generate
+            </button>
+            <div popover id="popup" class="popover">
+                <button type="button" class="close_button" popovertarget="popup" popovertargetaction="hide">
+                    ×
+                </button>
+                <div class="container">
+                    <h2>Const.json</h2>
+                    <div class="detail_content">
+                        <div class="keys">
+
+                        </div>
+                        <label class="values">
+
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="charInput">
+            <label id="charLabel">
+                送信テキスト<br>
+                <textarea id="charArea" placeholder="Enter text here..."></textarea>
+            </label>
+        </div>
+    </div>
+</body>
+
+
+</html>
