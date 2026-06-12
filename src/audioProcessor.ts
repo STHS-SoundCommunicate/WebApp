@@ -40,6 +40,7 @@ class audioProcessor extends AudioWorkletProcessor {
 	private readonly PREAMBLE_LEN: number;
 	private readonly SIGNAL_FREQS: Uint16Array;
 	private readonly BITS_PER_SIGNAL: number;
+	private readonly SIGNAL_MS: number;
 	private stackBuffer: StackBuffer;
 
 	private readonly symbols: Uint8Array;
@@ -63,12 +64,13 @@ class audioProcessor extends AudioWorkletProcessor {
 		this.PREAMBLE_LEN = this.PREAMBLE.length;
 		this.SIGNAL_FREQS = options.processorOptions.SIGNAL_FREQS;
 		this.BITS_PER_SIGNAL = options.processorOptions.BITS_PER_SIGNAL;
+		this.SIGNAL_MS = options.processorOptions.SIGNAL_MS;
 
 		this.stackBuffer = new StackBuffer(new Float32Array(0));
 		this.symbols = new Uint8Array(this.PREAMBLE_LEN * 2); // 疑似リングバッファ
 		this.recents = new Float32Array(this.HALF_SAMPLE_COUNT * 9);
 
-		this.m = new mfsk(this.SAMPLING_RATE, this.SIGNAL_FREQS);
+		this.m = new mfsk(this.SAMPLING_RATE, this.SIGNAL_FREQS, this.PREAMBLE, this.BITS_PER_SIGNAL, this.SIGNAL_MS);
 
 		this.generator = this.processing();
 

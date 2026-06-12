@@ -37,7 +37,7 @@ export function BAUD_RATE(): number { // 1秒で送るシグナル数[baud]
 }
 export function SIGNAL_FREQS(): Uint16Array {
 	let list: Uint16Array = new Uint16Array(CHANNELS());
-	for(let i: number = 0; i < CHANNELS(); i++)
+	for(let i: number = 0; i < CHANNELS(); ++i)
 		list[i] = SIGNAL_FREQ_START() + (i * SIGNAL_FREQ_WIDTH());
 	return list;
 }

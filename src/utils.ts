@@ -19,7 +19,25 @@ export function concat(arr1: Float32Array, arr2: Float32Array): Float32Array {
 
 export function isEqual(a: ArrayLike<number>, b: ArrayLike<number>): boolean {
 	if (a.length !== b.length) return false;
-	for (let i: number = 0; i < a.length; i++)
+	for (let i: number = 0; i < a.length; ++i)
 		if (a[i] !== b[i]) return false;
 	return true;
+}
+
+// utf-8 only
+function encodeUTF8(str: string): Uint8Array { return (new TextEncoder).encode(str); }
+
+export function str2bits(str: string): Uint8Array{
+	const encodedData: Uint8Array = encodeUTF8(str); // 1Byte区切りのデータ
+	let result: Uint8Array = new Uint8Array(encodedData.length * 8); // 8bit = 1byte
+	let key: number = 0;
+	encodedData.forEach((byte: number): void => {
+		for(let i: number = 0; i < 8; ++i)
+			result[key++] = ((byte >> (7 - i)) & 1);
+	});
+	return result;
+}
+
+export function decodeUTF8(buffer: Uint8Array): string {
+	return (new TextDecoder('utf-8')).decode(buffer); // 'utf-8'は冗長
 }

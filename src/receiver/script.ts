@@ -5,8 +5,11 @@ import {
 	SAMPLING_RATE,
 	SIGNAL_FREQS,
 	SAMPLES_COUNT,
-	PREAMBLE
-} from "../baseScript.ts";
+	PREAMBLE,
+	SIGNAL_MS
+} from "../const.ts";
+
+import { decodeUTF8 } from "../utils.ts";
 
 
 const button: JQuery = $('#toggleButton');
@@ -21,11 +24,6 @@ function log(s: string): void {
 	result.scrollTop(result[0].scrollHeight - height);
 }
 function clearLog(): void { result.text(''); }
-
-const decoder = new TextDecoder('utf-8'); // 冗長
-function decodeUTF8(buffer: Uint8Array): string {
-	return decoder.decode(buffer);
-}
 
 
 
@@ -64,7 +62,7 @@ async function toggleSound() {
 
 		clearLog();
 
-		audioCtx = new AudioContext( { sampleRate: SAMPLING_RATE() } );
+		audioCtx = new AudioContext({ sampleRate: SAMPLING_RATE() });
 		analyser = audioCtx.createAnalyser();
 		bufferLength = analyser.frequencyBinCount;
 		dataArray = new Uint8Array(bufferLength);
@@ -77,7 +75,8 @@ async function toggleSound() {
 				"PREAMBLE": PREAMBLE(),
 				"SAMPLE_RATE": SAMPLING_RATE(),
 				"SIGNAL_FREQS": SIGNAL_FREQS(),
-				"BITS_PER_SIGNAL": BITS_PER_SIGNAL()
+				"BITS_PER_SIGNAL": BITS_PER_SIGNAL(),
+				"SIGNAL_MS": SIGNAL_MS()
 			}
 		});
 
@@ -145,11 +144,11 @@ function visualize(): void { // https://developer.mozilla.org/ja/docs/Web/API/We
 	canvasCtx.lineWidth = 2;
 	canvasCtx.strokeStyle = "rgb(0, 0, 0)";
 	canvasCtx.beginPath();
-	let sliceWidth: number = WIDTH / bufferLength;
+	const sliceWidth: number = WIDTH / bufferLength;
 	let x: number = 0;
 	for(let i: number = 0; i < bufferLength; ++i) {
-		let v: number = dataArray[i] / 255;
-		let y: number = HEIGHT - (v * HEIGHT);
+		const v: number = dataArray[i] / 255;
+		const y: number = HEIGHT - (v * HEIGHT);
 		if(i === 0) canvasCtx.moveTo(x, y);
 		else canvasCtx.lineTo(x, y);
 		x += sliceWidth;
