@@ -2,8 +2,8 @@
 
 // const TITLE: string = "MFSK";
 
-import { modulator } from './modulator.ts';
-import { crc } from "../utils.ts";
+import {modulator} from './modulator.ts';
+import {crc} from "../utils.ts";
 
 export class mfsk extends modulator {
 
@@ -32,9 +32,91 @@ export class mfsk extends modulator {
 		return (s_prev2 * s_prev2) + (s_prev * s_prev) - (coeff * s_prev * s_prev2); // ほんとは平方根だけど、比較できればいいので具体的な数字は必要ない
 	}
 
+	private nextPowerOfTwo(n: number): number {
+		return 1 << Math.ceil(Math.log2(n));
+	}
+
+	private fftReal(samples: Float32Array): { re: Float64Array; im: Float64Array } {
+		const N: number = this.nextPowerOfTwo(samples.length);
+		const re: Float64Array = new Float64Array(N);
+		const im: Float64Array = new Float64Array(N);
+
+		for (let i: number = 0; i < samples.length; ++i) {
+			re[i] = samples[i];
+		}
+
+		this.fftInPlace(re, im);
+
+		return { re, im };
+	}
+
+	private fftInPlace(re: Float64Array, im: Float64Array): void {
+		const N: number = re.length;
+
+		for (let i: number = 1, j: number = 0; i < N; ++i) {
+			let bit: number = N >> 1;
+
+			for (; (j & bit) !== 0; bit >>= 1) j ^= bit;
+
+			j ^= bit;
+
+			if (i < j) {
+				const tr: number = re[i];
+				const ti: number = im[i];
+
+				re[i] = re[j];
+				im[i] = im[j];
+				re[j] = tr;
+				im[j] = ti;
+			}
+		}
+
+		for (let len: number = 2; len <= N; len <<= 1) {
+			const angle: number = -2 * Math.PI / len;
+			const wlenR: number = Math.cos(angle);
+			const wlenI: number = Math.sin(angle);
+
+			for (let i: number = 0; i < N; i += len) {
+				let wr: number = 1;
+				let wi: number = 0;
+
+				for (let j: number = 0; j < len / 2; ++j) {
+					const uR: number = re[i + j];
+					const uI: number = im[i + j];
+
+					const vR: number = re[i + j + len / 2] * wr - im[i + j + len / 2] * wi;
+					const vI: number = re[i + j + len / 2] * wi + im[i + j + len / 2] * wr;
+
+					re[i + j] = uR + vR;
+					im[i + j] = uI + vI;
+
+					re[i + j + len / 2] = uR - vR;
+					im[i + j + len / 2] = uI - vI;
+
+					const nextWr: number = wr * wlenR - wi * wlenI;
+					wi = wr * wlenI + wi * wlenR;
+					wr = nextWr;
+				}
+			}
+		}
+	}
+
+	public score(spectrum: { re: Float64Array; im: Float64Array }, freq: number){
+		const N: number = spectrum.re.length;
+		const bin: number = Math.round((18000 * N) / this.SAMPLING_RATE);
+		if (bin < 0 || bin >= N / 2) return 0;
+		const real: number = spectrum.re[bin];
+		const imag: number = spectrum.im[bin];
+		console.log((real * real) + (imag * imag));
+		return (real * real) + (imag * imag);
+	}
+
 	public detectSymbol(samples: Float32Array): number{
 		let max_freq: number = -1; // はたしてやっていい初期化なのだろうか
 		let max_db: number = -Infinity;
+
+
+
 		this.SIGNAL_FREQS.forEach((f: number, i: number): void => {
 			let score: number = this.getScore(samples, f);
 			if(score > max_db) {
