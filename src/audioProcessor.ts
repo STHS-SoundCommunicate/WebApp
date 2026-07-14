@@ -41,15 +41,18 @@ class audioProcessor extends AudioWorkletProcessor {
 	private readonly SIGNAL_FREQS: Uint16Array;
 	private readonly BITS_PER_SIGNAL: number;
 	private readonly SIGNAL_MS: number;
-	private stackBuffer: StackBuffer;
 
-	private readonly symbols: Uint8Array;
-	private symbols_index: number = 0;
+	private stackBuffer: StackBuffer; // マイク入力のバイナリをすべて格納
+
+	private readonly symbols: Uint8Array; // 固定長リングバッファ
+	private symbols_index: number = 0; // リングバッファ用ポインタ
 	private recents: Float32Array;
 
 	private m: modulator;
 
 	private generator: Generator;
+
+	private readonly crc_data: Uint8Array = new Uint8Array(4);
 
 	private readonly window_1: Uint8Array;
 	private readonly window_2: Uint8Array;
@@ -67,6 +70,7 @@ class audioProcessor extends AudioWorkletProcessor {
 		this.SIGNAL_MS = options.processorOptions.SIGNAL_MS;
 
 		this.stackBuffer = new StackBuffer(new Float32Array(0));
+
 		this.symbols = new Uint8Array(this.PREAMBLE_LEN * 2); // 疑似リングバッファ
 		this.recents = new Float32Array(this.HALF_SAMPLE_COUNT * 9);
 
@@ -103,46 +107,56 @@ class audioProcessor extends AudioWorkletProcessor {
 		this.symbols_index = (this.symbols_index + 1) % this.symbols.length;
 	}
 
-	private *waitSamples(count: number): Generator<void, Float32Array, void> {
+	private *waitSamples(count: number): Generator {
 		while(count > this.stackBuffer.length) yield;
 		return this.stackBuffer.readSamples(count);
 	}
 
 
 	// noinspection JSUnusedGlobalSymbols
-	process (
-		input: Float32Array[][]
-	): boolean { // 128サンプルごとに呼び出される 値域は-1.0 ~ 1.0
+	process (input: Float32Array[][]): boolean { // 128サンプルごとに呼び出される 値域は-1.0 ~ 1.0
 		const inputs: Float32Array = input[0][0];
 		if(!inputs) return true;
 		this.stackBuffer.add(inputs); // 128サンプルずつすべてスタックする
-		this.generator.next();
+		this.generator.next(); // processing()を実行
 		return true;
 	}
 
-	private readonly crc_data: Uint8Array = new Uint8Array(4);
+	private readPreamble(samples: Float32Array): number {
+
+		const symbol: number = this.m.detectSymbol(samples);
+		this.addSymbol(symbol);
+		this.recents = concat(this.recents.slice(this.HALF_SAMPLE_COUNT), samples);
+
+		// this.log(`[preamble] ${symbol}, [${this.symbols.join(', ')}][${this.symbols_index}]`);
+
+		for(let i: number = 0; i < this.PREAMBLE_LEN; ++i) {
+			let p: number = this.symbols_index - 1 - (2*i) + this.symbols.length;
+			this.window_1[this.PREAMBLE_LEN - i - 1] = this.symbols[p % this.symbols.length]; // 偶数列
+			this.window_2[this.PREAMBLE_LEN - i - 1] = this.symbols[(p-1) % this.symbols.length]; // 奇数列
+		}
+
+		if(isEqual(this.PREAMBLE, this.window_1)) {
+			return 1;
+		} else if(isEqual(this.PREAMBLE, this.window_2)) {
+			return 2;
+		}
+		return 0;
+
+	}
+
 	* processing(): Generator {
 
 		while(true) {
 
 			let samples: Float32Array = yield* this.waitSamples(this.HALF_SAMPLE_COUNT);
-			const symbol: number = this.m.detectSymbol(samples);
-			this.addSymbol(symbol);
-			this.recents = concat(this.recents.slice(this.HALF_SAMPLE_COUNT), samples);
+			let isPreamble: number = this.readPreamble(samples);
 
-			// this.log(`[preamble] ${symbol}, [${this.symbols.join(', ')}][${this.symbols_index}]`);
-
-			for(let i: number = 0; i < this.PREAMBLE_LEN; ++i) {
-				let p: number = this.symbols_index - 1 - (2*i) + this.symbols.length;
-				this.window_1[this.PREAMBLE_LEN - i - 1] = this.symbols[p % this.symbols.length];
-				this.window_2[this.PREAMBLE_LEN - i - 1] = this.symbols[(p-1) % this.symbols.length];
-			}
-
-			if(isEqual(this.PREAMBLE, this.window_1) || isEqual(this.PREAMBLE, this.window_2)) {
+			if(isPreamble !== 0) {
 
 				this.log("preamble detected");
 
-				let phase_offset: number = isEqual(this.PREAMBLE, this.window_2) ? 0 : this.HALF_SAMPLE_COUNT;
+				let phase_offset: number = (isPreamble === 2) ? 0 : this.HALF_SAMPLE_COUNT;
 				let temp_max: number = 0;
 				let start_preamble: number = phase_offset;
 				for(let i: number = start_preamble; i < phase_offset + this.HALF_SAMPLE_COUNT; ++i) {
@@ -152,6 +166,7 @@ class audioProcessor extends AudioWorkletProcessor {
 						start_preamble = i;
 					}
 				}
+
 
 				let header_index: number = start_preamble + (this.SAMPLE_COUNT * this.PREAMBLE_LEN);
 				let buf_size: number = this.recents.length;

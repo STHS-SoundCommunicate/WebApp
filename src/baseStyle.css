@@ -12,37 +12,37 @@
     transition: transform 0.1s linear;
     transform: scale(0.95); }
 
-.popover {
+.const_popover {
   height: fit-content;
   width: fit-content;
   max-width: 800px; }
-  .popover .container {
+  .const_popover .container {
     height: fit-content;
     display: flex;
     flex-direction: column; }
-    .popover .container h2 {
+    .const_popover .container h2 {
       margin: 10px;
       padding-bottom: 10px;
       text-align: center;
       border-bottom: 2px dotted black; }
-    .popover .container .detail_content {
+    .const_popover .container .detail_content {
       text-align: left;
       margin: 0 10px 10px;
       display: flex;
       gap: 10px;
       overflow: hidden; }
-      .popover .container .detail_content .keys {
+      .const_popover .container .detail_content .keys {
         width: 70%;
         display: flex;
         flex-direction: column; }
-      .popover .container .detail_content .values {
+      .const_popover .container .detail_content .values {
         width: 30%;
         display: flex;
         flex-direction: column; }
-        .popover .container .detail_content .values input {
+        .const_popover .container .detail_content .values input {
           height: 18px;
           width: 80%; }
-  .popover .close_button {
+  .const_popover .close_button {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -55,12 +55,12 @@
     margin: 5px;
     padding: 10px;
     font-size: 1.2rem; }
-    .popover .close_button:hover {
+    .const_popover .close_button:hover {
       background-color: #f66;
       color: white;
       cursor: pointer;
       box-shadow: 0 0 5px #f66; }
-    .popover .close_button:active {
+    .const_popover .close_button:active {
       box-shadow: none; }
 
 /*# sourceMappingURL=baseStyle.css.map */

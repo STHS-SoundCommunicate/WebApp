@@ -35,6 +35,7 @@ export function SIGNAL_MS(): number { // 1シグナルの時間[ms]
 export function BAUD_RATE(): number { // 1秒で送るシグナル数[baud]
 	return 1000 / SIGNAL_MS();
 }
+
 export function SIGNAL_FREQS(): Uint16Array {
 	let list: Uint16Array = new Uint16Array(CHANNELS());
 	for(let i: number = 0; i < CHANNELS(); ++i)

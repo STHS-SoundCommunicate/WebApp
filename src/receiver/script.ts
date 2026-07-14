@@ -20,7 +20,7 @@ const stats: JQuery = $('#stats');
 const result: JQuery = $('#result');
 const height: number = result.height() ?? 0;
 function log(s: string): void {
-	result.text(result.text().slice(-10000) + `\n${s}`);
+	result.text(result.text().slice(-10000) + `\n${s}`); // 最大10000+字
 	result.scrollTop(result[0].scrollHeight - height);
 }
 function clearLog(): void { result.text(''); }
@@ -153,6 +153,6 @@ function visualize(): void { // https://developer.mozilla.org/ja/docs/Web/API/We
 		else canvasCtx.lineTo(x, y);
 		x += sliceWidth;
 	}
-	// canvasCtx.lineTo(WIDTH, HEIGHT / 2);
+	// canvasCtx.lineTo(WIDTH, HEIGHT / 2); // 中心線
 	canvasCtx.stroke();
 }

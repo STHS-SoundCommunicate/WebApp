@@ -12,28 +12,26 @@
     <div class="wrapper">
         <a href="receiver.html">Listener</a>
         <div class="buttons">
-            <button type="button" class="button" id="detail" popovertarget="popup">
+
+            <button type="button" class="button" id="detail" popovertarget="const_popup">
                 const.json
             </button>
-            <button type="button" class="button" id="genButton">
-                Generate
-            </button>
-            <div popover id="popup" class="popover">
-                <button type="button" class="close_button" popovertarget="popup" popovertargetaction="hide">
+            <div popover id="const_popup" class="const_popover">
+                <button type="button" class="close_button" popovertarget="const_popup" popovertargetaction="hide">
                     ×
                 </button>
                 <div class="container">
                     <h2>Const.json</h2>
                     <div class="detail_content">
-                        <div class="keys">
-
-                        </div>
-                        <label class="values">
-
-                        </label>
+                        <div class="keys"></div>
+                        <label class="values"></label>
                     </div>
                 </div>
             </div>
+
+            <button type="button" class="button" id="genButton">
+                Generate
+            </button>
         </div>
         <div class="charInput">
             <label id="charLabel">
