@@ -6,10 +6,9 @@
 	<meta name="viewport"
 		  content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
 	<title>ListenSound</title>
-  <script type="module" crossorigin src="./assets/receiver-D83JkcpU.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/utils-BKGXy3Vv.js">
-  <link rel="stylesheet" crossorigin href="./assets/utils-4R8RvZKQ.css">
-  <link rel="stylesheet" crossorigin href="./assets/receiver-BCyFw2U0.css">
+  <script type="module" crossorigin src="./assets/receiver-BnQMAlu_.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/utils-DEdgUcTb.js">
+  <link rel="stylesheet" crossorigin href="./assets/receiver-DnrVtE7X.css">
 </head>
 
 <body>
@@ -17,22 +16,18 @@
 		<a href="player.html">Player</a>
 		<div class="buttonWrapper">
 
-			<button type="button" class="button" id="detail" popovertarget="popup">
+			<button type="button" class="button" id="detail" popovertarget="const_popup">
 				const.json
 			</button>
-			<div popover id="popup" class="popover">
-				<button type="button" class="close_button" popovertarget="popup" popovertargetaction="hide">
+			<div popover id="const_popup" class="const_popover">
+				<button type="button" class="close_button" popovertarget="const_popup" popovertargetaction="hide">
 					×
 				</button>
-				<div class="container">
+				<div class="popover_container">
 					<h2>Const.json</h2>
 					<div class="detail_content">
-						<div class="keys">
-
-						</div>
-						<label class="values">
-
-						</label>
+						<div class="keys"></div>
+						<label class="values"></label>
 					</div>
 				</div>
 			</div>
@@ -40,6 +35,20 @@
 			<button class="button" id="toggleButton">
 				Listen
 			</button>
+
+
+
+			<label for="fileInput" style="cursor: pointer;" id="fileLabel">
+				Load file...
+			</label>
+			<input type="file" id="fileInput" accept=".json" style="display: none;">
+			<ul class="data_list">
+			</ul>
+			<button type="button" class="button" id="exp_result" style="display: none;">Results</button>
+
+
+
+
 			<span id="stats"></span>
 		</div>
 
@@ -50,6 +59,7 @@
 
 		<canvas id="visualizer"> <!-- mic level-->
 		</canvas>
+
 	</div>
 </body>
 

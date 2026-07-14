@@ -6,7 +6,7 @@
         content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <title>PlaySound</title>
     <link rel="stylesheet" href="src/player/player.css">
-    <link rel="stylesheet" href="src/baseStyle.scss">
+    <link rel="stylesheet" href="src/baseStyle.css">
 </head>
 <body>
     <div class="wrapper">
@@ -33,6 +33,18 @@
                 Generate
             </button>
         </div>
+
+
+
+        <label for="fileInput" style="cursor: pointer;" id="fileLabel">
+            Load file...
+        </label>
+        <input type="file" id="fileInput" accept=".json" style="display: none;">
+        <ul class="data_list">
+        </ul>
+
+
+
         <div class="charInput">
             <label id="charLabel">
                 送信テキスト<br>

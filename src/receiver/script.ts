@@ -9,7 +9,7 @@ import {
 	SIGNAL_MS
 } from "../const.ts";
 
-import { decodeUTF8 } from "../utils.ts";
+import {decodeUTF8, str2bits} from "../utils.ts";
 
 
 const button: JQuery = $('#toggleButton');
@@ -33,7 +33,8 @@ let analyser: AnalyserNode;
 // https://qiita.com/takatama/items/4fe3fe787264f1f44515#%E5%AD%A6%E3%81%B6%E6%8A%80%E8%A1%93
 // https://zenn.dev/rerrah/articles/5b649722ffc3c2
 // @ts-ignore
-import processorUrl from "../audioProcessor.ts?worker&url"; // ビルド時のエラー回避
+import processorUrl from "../audioProcessor.ts?worker&url";
+
 let audioProcessorNode: AudioWorkletNode;
 let stream: MediaStream | undefined;
 
@@ -41,6 +42,50 @@ let isLocked: boolean = false; // 多重防止
 
 let bufferLength: number;
 let dataArray: Uint8Array<ArrayBuffer>;
+
+
+
+let exp_isEnable: boolean = false;
+let exp_data: {id: number, string_data: string}[];
+let exp_id: number = 0;
+let exp_results: {id: number, detect: string, correct: number, wrong: number}[] = [];
+
+function exp(payload: string): void {
+	if(!exp_isEnable) return;
+	let data = exp_data.find((d): boolean => d.id === exp_id);
+	if(data === undefined) return;
+
+	let correct: number = 0;
+	let wrong: number = 0;
+
+	let result: string = data.string_data;
+
+	payload.split('').forEach((c: string, i: number): void => {
+		if(c === data.string_data.charAt(i)) {
+			correct++;
+			result = result.slice(0, i) + data.string_data.charAt(i).toLowerCase() + result.slice(i + 1);
+		} else {
+			wrong++;
+		}
+	});
+
+	log(`Result: ${result} \n Correct: ${correct}, Wrong: ${wrong}`);
+
+	exp_results.push({id: exp_id, detect: payload, correct: correct, wrong: wrong});
+}
+
+function exp_result(): void {
+	const json = JSON.stringify(exp_results);
+	const blob = new Blob([json], {type: 'application/json'});
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement('a');
+	a.href = url;
+	a.download = 'exp_results.json';
+	a.click();
+	URL.revokeObjectURL(url);
+}
+
+
 
 async function toggleSound() {
 	if(isLocked) return;
@@ -85,8 +130,12 @@ async function toggleSound() {
 			if(e.data instanceof Uint8Array) {
 				let str: string = decodeUTF8(e.data);
 				log(str);
+
+				exp(str);
+
 				toggleSound();
 				stats.text("受信しました: " + str);
+
 			} else {
 				log(e.data);
 			}
@@ -156,3 +205,24 @@ function visualize(): void { // https://developer.mozilla.org/ja/docs/Web/API/We
 	// canvasCtx.lineTo(WIDTH, HEIGHT / 2); // 中心線
 	canvasCtx.stroke();
 }
+
+
+
+const ul = $('.data_list');
+$('#fileInput').on('change', async (event) => {
+	let file: File = (event.target as HTMLInputElement).files![0];
+	$('#fileLabel').text(file.name);
+	let text: string = await file.text();
+	exp_data = JSON.parse(text);
+	exp_isEnable = true;
+	exp_id = exp_data[0].id;
+	$('#exp_result').on('click', exp_result).css('display', 'block');
+	ul.empty();
+	for(let data of exp_data) {
+		let li = $('<button>').text(data.id).addClass('data').on('click', async () => {
+			li.css('background-color', 'white').siblings().css('background-color', 'lightgray');
+			exp_id = data.id;
+		});
+		ul.append(li);
+	}
+});
