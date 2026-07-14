@@ -120,7 +120,6 @@ export class mfsk extends modulator {
 		return (real * real) + (imag * imag);
 	}
 
-	public detectSymbol(samples: Float32Array): number{
 	public detectSymbol(samples: Float32Array): number {
 		let max_freq: number = -1; // はたしてやっていい初期化なのだろうか
 		let max_db: number = -Infinity;
