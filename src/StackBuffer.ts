@@ -28,6 +28,10 @@ class StackBuffer {
 		this.buffer = concat(this.buffer, samples);
 	}
 
+	public clone(): StackBuffer {
+		return new StackBuffer(this.buffer);
+	}
+
 }
 
 export default StackBuffer;

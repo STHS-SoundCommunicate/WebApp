@@ -1,14 +1,15 @@
-import {BITS_PER_SIGNAL, PREAMBLE, SAMPLES_COUNT, SAMPLING_RATE, SIGNAL_FREQS, SIGNAL_MS} from "../const.ts";
+import { BITS_PER_SIGNAL, PREAMBLE, SAMPLES_COUNT, SAMPLING_RATE, SIGNAL_FREQS, SIGNAL_MS } from "../const.ts";
 import { str2bits } from "../utils.ts";
 import { mfsk } from "../modules/mfsk.ts";
 import $ from 'jquery';
 
 async function playSound(sinData: Float32Array, sampleRate: number = SAMPLING_RATE()) {
-	const audioCtx = new AudioContext({ sampleRate: sampleRate });
+	const audioCtx = new AudioContext({ // https://developer.mozilla.org/ja/docs/Web/API/AudioContext/AudioContext
+		sampleRate: sampleRate,
+		latencyHint: 'playback'
+	});
 	// AudioBufferの作成 (1チャンネル(モノラル), サンプル数, サンプリングレート)
-	const numberOfChannels = 1;
-	const bufferLength: number = sinData.length;
-	const audioBuffer: AudioBuffer = audioCtx.createBuffer(numberOfChannels, bufferLength, sampleRate);
+	const audioBuffer: AudioBuffer = audioCtx.createBuffer(1, sinData.length, sampleRate);
 	// バッファのチャンネルデータ（Float32Array）を取得し、sinデータをコピー
 	const channelData: Float32Array = audioBuffer.getChannelData(0);
 	channelData.set(sinData);

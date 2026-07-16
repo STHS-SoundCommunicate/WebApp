@@ -1,4 +1,4 @@
-import $ from 'jquery'; // 最悪なくせる
+import $ from 'jquery';
 
 import {
 	BITS_PER_SIGNAL,
@@ -9,14 +9,11 @@ import {
 	SIGNAL_MS
 } from "../const.ts";
 
-import {decodeUTF8, str2bits} from "../utils.ts";
-
+import { decodeUTF8 } from "../utils.ts"; // ライブラリ化するならここもまとめた方がいいかな
 
 const button: JQuery = $('#toggleButton');
 button.on('click', toggleSound);
-
 const stats: JQuery = $('#stats');
-
 const result: JQuery = $('#result');
 const height: number = result.height() ?? 0;
 function log(s: string): void {
@@ -32,6 +29,7 @@ let audioCtx: AudioContext;
 let analyser: AnalyserNode;
 // https://qiita.com/takatama/items/4fe3fe787264f1f44515#%E5%AD%A6%E3%81%B6%E6%8A%80%E8%A1%93
 // https://zenn.dev/rerrah/articles/5b649722ffc3c2
+
 // @ts-ignore
 import processorUrl from "../audioProcessor.ts?worker&url";
 
@@ -43,14 +41,13 @@ let isLocked: boolean = false; // 多重防止
 let bufferLength: number;
 let dataArray: Uint8Array<ArrayBuffer>;
 
-
-
+let exp_counting: number = 1;
 let exp_isEnable: boolean = false;
 let exp_data: {id: number, string_data: string}[];
 let exp_id: number = 0;
-let exp_results: {id: number, detect: string, correct: number, wrong: number}[] = [];
+let exp_results: {id: number, detect: string, correct: number, wrong: number, db: number, try: number, pattern: { [key: string]: string }[], wave: Float32Array}[] = [];
 
-function exp(payload: string): void {
+function exp(payload: string, db: number, wave_data: Float32Array): void {
 	if(!exp_isEnable) return;
 	let data = exp_data.find((d): boolean => d.id === exp_id);
 	if(data === undefined) return;
@@ -59,25 +56,27 @@ function exp(payload: string): void {
 	let wrong: number = 0;
 
 	let result: string = data.string_data;
+	let wrong_pattern: { [key: string]: string }[] = [];
 
 	payload.split('').forEach((c: string, i: number): void => {
 		if(c === data.string_data.charAt(i)) {
 			correct++;
 			result = result.slice(0, i) + data.string_data.charAt(i).toLowerCase() + result.slice(i + 1);
 		} else {
+			wrong_pattern.push({[data?.string_data.charAt(i)]: c});
 			wrong++;
 		}
 	});
 
-	log(`Result: ${result} \n Correct: ${correct}, Wrong: ${wrong}`);
+	log(`Result: ${result} \n Correct: ${correct}, Wrong: ${wrong} Tries: ${exp_counting}`);
 
-	exp_results.push({id: exp_id, detect: payload, correct: correct, wrong: wrong});
+	exp_results.push({id: exp_id, detect: payload, correct: correct, wrong: wrong, db: db, try: exp_counting, pattern: wrong_pattern, wave: wave_data});
 }
 
-function exp_result(): void {
-	const json = JSON.stringify(exp_results);
+function exp_result(): void { // jsonをダウンロード
+	const json: string = JSON.stringify(exp_results);
 	const blob = new Blob([json], {type: 'application/json'});
-	const url = URL.createObjectURL(blob);
+	const url: string = URL.createObjectURL(blob);
 	const a = document.createElement('a');
 	a.href = url;
 	a.download = 'exp_results.json';
@@ -127,16 +126,19 @@ async function toggleSound() {
 
 		audioProcessorNode.port.onmessage = (e: MessageEvent): void => {
 			if(stream === undefined) return;
-			if(e.data instanceof Uint8Array) {
-				let str: string = decodeUTF8(e.data);
+			if(e.data instanceof Array) {
+
+				let str: string = decodeUTF8(e.data[0]);
 				log(str);
 
-				exp(str);
+				exp(str, e.data[1], e.data[2]);
 
 				toggleSound();
 				stats.text("受信しました: " + str);
 
 			} else {
+				if(e.data === 'header crc check failed')
+					exp_counting++;
 				log(e.data);
 			}
 		};
@@ -146,7 +148,7 @@ async function toggleSound() {
 		log("Preparing microphone...");
 		stream = await navigator.mediaDevices.getUserMedia(
 			{
-				audio: {
+				audio: { // https://note.com/npaka/n/n87acd80a4266
 					echoCancellation: false,
 					noiseSuppression: false,
 					sampleRate: SAMPLING_RATE(),
@@ -222,6 +224,7 @@ $('#fileInput').on('change', async (event) => {
 		let li = $('<button>').text(data.id).addClass('data').on('click', async () => {
 			li.css('background-color', 'white').siblings().css('background-color', 'lightgray');
 			exp_id = data.id;
+			exp_counting = 1;
 		});
 		ul.append(li);
 	}

@@ -209,13 +209,24 @@ export class mfsk extends modulator {
 
 	private readonly crc_data: Uint8Array = new Uint8Array(4);
 
+	private wait: number = 0;
+
 	public *process(stackBuffer: StackBuffer, log: (s: any) => void): Generator {
 		while(true) {
 
 			let samples: Float32Array = yield* stackBuffer.waitSamples(this.HALF_SAMPLE_COUNT);
 			let isPreamble: [boolean, number] = this.readPreamble(samples);
 
+			this.wait++;
+
 			if(isPreamble[0]) {
+
+				if(this.wait < 10) {
+					// this.wait = 0;
+					continue;
+				}
+
+				this.wait = 0;
 
 				log("preamble detected");
 
@@ -251,13 +262,24 @@ export class mfsk extends modulator {
 					let payloads: StackBuffer = new StackBuffer(yield* stackBuffer.waitSamples(this.SAMPLE_COUNT * payload_length));
 					log("Payload received");
 
+
+					let sum: number = 0;
+					let payloads_copy: Float32Array = payloads.clone().readSamples();
+					payloads_copy.forEach((value) => {
+						sum += value * value;
+					});
+					const rms: number = Math.sqrt(sum / payloads_copy.length);
+					const db: number = rms > 0 ? 20 * Math.log10(rms) : -Infinity;
+					log(`Ave-Vol ${db} dBFS`);
+
+
 					let payload_symbols: number[] = [];
 					for(let _: number = 0; _ < payload_length; ++_)
 						payload_symbols.push(this.detectSymbol(payloads.readSamples(this.SAMPLE_COUNT)));
 					log(`[${this.PREAMBLE.join(', ')}, ${this.crc_data.join(', ')}, ${c8_hi}, ${c8_lo}, ${payload_symbols.join(', ')}]`);
 					let payload_bits: Uint8Array = this.symbol2bits(payload_symbols);
 
-					log(payload_bits); // postMessage
+					log([payload_bits, db, payloads_copy]); // postMessage
 
 				} else {
 					log("header crc check failed");

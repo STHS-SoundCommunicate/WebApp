@@ -23,7 +23,6 @@ class audioProcessor extends AudioWorkletProcessor {
 						  options.processorOptions.SIGNAL_MS,
 						  options.processorOptions.SAMPLES_COUNT);
 
-
 		const log = (s: any) => {
 			// @ts-ignore
 			this.port.postMessage(s);
@@ -31,7 +30,6 @@ class audioProcessor extends AudioWorkletProcessor {
 		this.generator = this.m.process(this.stackBuffer, log); // クラスのアドレス値が渡されて、変更も反映されるはず、、、
 
 	}
-
 
 	// noinspection JSUnusedGlobalSymbols
 	process (input: Float32Array[][]): boolean { // 128サンプルごとに呼び出される 値域は-1.0 ~ 1.0
@@ -41,7 +39,6 @@ class audioProcessor extends AudioWorkletProcessor {
 		this.generator.next(); // this.m.process()を実行（再開）
 		return true;
 	}
-
 }
 
 // @ts-ignore
