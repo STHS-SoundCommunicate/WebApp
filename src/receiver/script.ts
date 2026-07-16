@@ -45,7 +45,7 @@ let exp_counting: number = 1;
 let exp_isEnable: boolean = false;
 let exp_data: {id: number, string_data: string}[];
 let exp_id: number = 0;
-let exp_results: {id: number, detect: string, correct: number, wrong: number, db: number, try: number, pattern: { [key: string]: string }[], wave: Float32Array}[] = [];
+let exp_results: {id: number, detect: string, correct: number, wrong: number, db: number, try: number, pattern: { [key: string]: string }[], wave: number[]}[] = [];
 
 function exp(payload: string, db: number, wave_data: Float32Array): void {
 	if(!exp_isEnable) return;
@@ -70,7 +70,7 @@ function exp(payload: string, db: number, wave_data: Float32Array): void {
 
 	log(`Result: ${result} \n Correct: ${correct}, Wrong: ${wrong} Tries: ${exp_counting}`);
 
-	exp_results.push({id: exp_id, detect: payload, correct: correct, wrong: wrong, db: db, try: exp_counting, pattern: wrong_pattern, wave: wave_data});
+	exp_results.push({id: exp_id, detect: payload, correct: correct, wrong: wrong, db: db, try: exp_counting, pattern: wrong_pattern, wave: Array.from(wave_data)});
 }
 
 function exp_result(): void { // jsonをダウンロード

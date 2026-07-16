@@ -221,11 +221,7 @@ export class mfsk extends modulator {
 
 			if(isPreamble[0]) {
 
-				if(this.wait < 10) {
-					// this.wait = 0;
-					continue;
-				}
-
+				if(this.wait < 10) continue; // 実験用？
 				this.wait = 0;
 
 				log("preamble detected");
