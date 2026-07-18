@@ -1,3 +1,23 @@
+:root {
+  touch-action: manipulation; }
+
+body:has([popover]:popover-open) {
+  overflow: hidden; }
+
+.wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 30px;
+  width: 100%; }
+
+.buttonWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column; }
+
 .button {
   display: flex;
   justify-content: center;

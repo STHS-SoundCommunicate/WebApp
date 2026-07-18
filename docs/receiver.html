@@ -6,16 +6,16 @@
 	<meta name="viewport"
 		  content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
 	<title>ListenSound</title>
-  <script type="module" crossorigin src="./assets/receiver-D8r62ecS.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/utils-DEdgUcTb.js">
-  <link rel="stylesheet" crossorigin href="./assets/receiver-TLHTDHJO.css">
+  <script type="module" crossorigin src="./assets/receiver-Bs5WWGBJ.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/utils-D67-f0Qf.js">
+  <link rel="stylesheet" crossorigin href="./assets/receiver-CobZegKs.css">
 </head>
 
 <body>
 	<div class="wrapper">
 		<a href="player.html">Player</a>
-		<div class="buttonWrapper">
 
+		<div class="buttonWrapper">
 			<button type="button" class="button" id="detail" popovertarget="const_popup">
 				const.json
 			</button>
@@ -31,26 +31,33 @@
 					</div>
 				</div>
 			</div>
-
 			<button class="button" id="toggleButton">
 				Listen
 			</button>
-
-
-
-			<label for="fileInput" style="cursor: pointer;" id="fileLabel">
-				Load file...
-			</label>
-			<input type="file" id="fileInput" accept=".json" style="display: none;">
-			<ul class="data_list">
-			</ul>
-			<button type="button" class="button" id="exp_result" style="display: none;">Results</button>
-
-
-
-
-			<span id="stats"></span>
 		</div>
+
+
+
+		<label for="fileInput" style="cursor: pointer;" id="fileLabel">
+			Load file...
+		</label>
+		<input type="file" id="fileInput" accept=".json" style="display: none;">
+		<ul class="data_list">
+		</ul>
+		<div class="dlOpts">
+			<label>
+				<input type="text" id="fileNameInput" placeholder="Name...">
+			</label>
+			<label>
+				Save to local
+				<input type="checkbox" id="isLocal">
+			</label>
+			<button type="button" class="button" id="exp_result">Download</button>
+		</div>
+
+
+
+		<span id="stats"></span>
 
 		<label id="charLabel">
 			受信結果<br>

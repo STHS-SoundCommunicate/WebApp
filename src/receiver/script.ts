@@ -6,7 +6,7 @@ import {
 	SIGNAL_FREQS,
 	SAMPLES_COUNT,
 	PREAMBLE,
-	SIGNAL_MS
+	SIGNAL_MS, CHANNELS, BPS, SIGNAL_FREQ_START, SIGNAL_FREQ_WIDTH
 } from "../const.ts";
 
 import { decodeUTF8 } from "../utils.ts"; // ライブラリ化するならここもまとめた方がいいかな
@@ -73,15 +73,60 @@ function exp(payload: string, db: number, wave_data: Float32Array): void {
 	exp_results.push({id: exp_id, detect: payload, correct: correct, wrong: wrong, db: db, try: exp_counting, pattern: wrong_pattern, wave: Array.from(wave_data)});
 }
 
-function exp_result(): void { // jsonをダウンロード
-	const json: string = JSON.stringify(exp_results);
-	const blob = new Blob([json], {type: 'application/json'});
-	const url: string = URL.createObjectURL(blob);
-	const a = document.createElement('a');
-	a.href = url;
-	a.download = 'exp_results.json';
-	a.click();
-	URL.revokeObjectURL(url);
+let isFileSaving: boolean = false;
+function exp_result(isLocal: boolean): void { // jsonをダウンロード
+	const fileName: string = $('#fileNameInput').val() + '.json';
+	const result_file = {
+		"config": {
+			"CHANNELS": CHANNELS(),
+			"BITS_PER_SIGNAL": BITS_PER_SIGNAL(),
+			"BPS": BPS(),
+			"SAMPLE_RATE": SAMPLING_RATE(),
+			"SIGNAL_FREQ_START": SIGNAL_FREQ_START(),
+			"SIGNAL_FREQ_WIDTH": SIGNAL_FREQ_WIDTH(),
+			"PREAMBLE": PREAMBLE()
+		},
+		"exp_results": exp_results
+	};
+	if(isLocal){ // save to local
+		let blob = new Blob([JSON.stringify(result_file)], {type: 'application/json'});
+		let url: string = URL.createObjectURL(blob);
+		let a = document.createElement('a');
+		a.href = url;
+		a.download = fileName;
+		a.click();
+		URL.revokeObjectURL(url);
+	} else { // save to server
+		if (isFileSaving) {
+			log("File saving is already in progress.");
+			return;
+		}
+		isFileSaving = true;
+		log(`Saving ${fileName}...`);
+		saveFile(fileName, result_file).then(async (res: Response) => {
+			const json = await res.json();
+			if(json.success){
+				log(`Saved ${json.file}`);
+			} else {
+				log(`Failed to save ${json.file}`);
+			}
+		}).finally(() => {
+			isFileSaving = false;
+		});
+	}
+}
+
+async function saveFile(fileName: string, data: any): Promise<Response> {
+	return await fetch("http://localhost:3000/save", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+			file: fileName,
+			data: data
+		})
+    });
 }
 
 
@@ -218,7 +263,14 @@ $('#fileInput').on('change', async (event) => {
 	exp_data = JSON.parse(text);
 	exp_isEnable = true;
 	exp_id = exp_data[0].id;
-	$('#exp_result').on('click', exp_result).css('display', 'block');
+	$('#exp_result').on('click', () => {
+		try {
+			exp_result($('#isLocal').prop('checked'));
+		} catch(e) {
+			log(`Error: ${e}`);
+		}
+	}).css('display', 'block');
+	$('.dlOpts').css('display', 'flex');
 	ul.empty();
 	for(let data of exp_data) {
 		let li = $('<button>').text(data.id).addClass('data').on('click', async () => {
