@@ -117,7 +117,7 @@ function exp_result(isLocal: boolean): void { // jsonをダウンロード
 }
 
 async function saveFile(fileName: string, data: any): Promise<Response> {
-	return await fetch("http://localhost:3000/save", {
+	return await fetch("/save", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -268,6 +268,7 @@ $('#fileInput').on('change', async (event) => {
 			exp_result($('#isLocal').prop('checked'));
 		} catch(e) {
 			log(`Error: ${e}`);
+			isFileSaving = false;
 		}
 	}).css('display', 'block');
 	$('.dlOpts').css('display', 'flex');

@@ -304,7 +304,6 @@ export class mfsk extends modulator {
 		let waves: Float32Array = new Float32Array((header.length + index.length) * n_signals);
 		let key: number = 0;
 		let phase: number = 0;
-
 		const sinWaver = (value: number): void => {
 			const freq: number = this.SIGNAL_FREQS[value];
 			for(let i: number = 0; i < n_signals; ++i)
@@ -312,15 +311,8 @@ export class mfsk extends modulator {
 			phase = (phase + (2 * Math.PI * duration * freq)) % (2 * Math.PI);
 		};
 
-		header.forEach((value: number): void =>
-			sinWaver(value)
-		);
-
-		// header.forEach(sinWaver); // これで動きそうじゃね？
-
-		index.forEach((value: number): void =>
-			sinWaver(value)
-		);
+		header.forEach(sinWaver);
+		index.forEach(sinWaver);
 
 		return waves;
 	}
