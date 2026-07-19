@@ -2,14 +2,17 @@ import $ from 'jquery';
 
 import {
 	BITS_PER_SIGNAL,
+	PREAMBLE,
+	SAMPLES_COUNT,
 	SAMPLING_RATE,
 	SIGNAL_FREQS,
-	SAMPLES_COUNT,
-	PREAMBLE,
-	SIGNAL_MS, CHANNELS, BPS, SIGNAL_FREQ_START, SIGNAL_FREQ_WIDTH
+	SIGNAL_MS,
+	getAll
 } from "../const.ts";
 
 import { decodeUTF8 } from "../utils.ts"; // ライブラリ化するならここもまとめた方がいいかな
+// @ts-ignore
+import processorUrl from "../audioProcessor.ts?worker&url";
 
 const button: JQuery = $('#toggleButton');
 button.on('click', toggleSound);
@@ -30,9 +33,6 @@ let analyser: AnalyserNode;
 // https://qiita.com/takatama/items/4fe3fe787264f1f44515#%E5%AD%A6%E3%81%B6%E6%8A%80%E8%A1%93
 // https://zenn.dev/rerrah/articles/5b649722ffc3c2
 
-// @ts-ignore
-import processorUrl from "../audioProcessor.ts?worker&url";
-
 let audioProcessorNode: AudioWorkletNode;
 let stream: MediaStream | undefined;
 
@@ -40,96 +40,6 @@ let isLocked: boolean = false; // 多重防止
 
 let bufferLength: number;
 let dataArray: Uint8Array<ArrayBuffer>;
-
-let exp_counting: number = 1;
-let exp_isEnable: boolean = false;
-let exp_data: {id: number, string_data: string}[];
-let exp_id: number = 0;
-let exp_results: {id: number, detect: string, correct: number, wrong: number, db: number, try: number, pattern: { [key: string]: string }[], wave: number[]}[] = [];
-
-function exp(payload: string, db: number, wave_data: Float32Array): void {
-	if(!exp_isEnable) return;
-	let data = exp_data.find((d): boolean => d.id === exp_id);
-	if(data === undefined) return;
-
-	let correct: number = 0;
-	let wrong: number = 0;
-
-	let result: string = data.string_data;
-	let wrong_pattern: { [key: string]: string }[] = [];
-
-	payload.split('').forEach((c: string, i: number): void => {
-		if(c === data.string_data.charAt(i)) {
-			correct++;
-			result = result.slice(0, i) + data.string_data.charAt(i).toLowerCase() + result.slice(i + 1);
-		} else {
-			wrong_pattern.push({[data?.string_data.charAt(i)]: c});
-			wrong++;
-		}
-	});
-
-	log(`Result: ${result} \n Correct: ${correct}, Wrong: ${wrong} Tries: ${exp_counting}`);
-
-	exp_results.push({id: exp_id, detect: payload, correct: correct, wrong: wrong, db: db, try: exp_counting, pattern: wrong_pattern, wave: Array.from(wave_data)});
-}
-
-let isFileSaving: boolean = false;
-function exp_result(isLocal: boolean): void { // jsonをダウンロード
-	const fileName: string = $('#fileNameInput').val() + '.json';
-	const result_file = {
-		"config": {
-			"CHANNELS": CHANNELS(),
-			"BITS_PER_SIGNAL": BITS_PER_SIGNAL(),
-			"BPS": BPS(),
-			"SAMPLE_RATE": SAMPLING_RATE(),
-			"SIGNAL_FREQ_START": SIGNAL_FREQ_START(),
-			"SIGNAL_FREQ_WIDTH": SIGNAL_FREQ_WIDTH(),
-			"PREAMBLE": PREAMBLE()
-		},
-		"exp_results": exp_results
-	};
-	if(isLocal){ // save to local
-		let blob = new Blob([JSON.stringify(result_file)], {type: 'application/json'});
-		let url: string = URL.createObjectURL(blob);
-		let a = document.createElement('a');
-		a.href = url;
-		a.download = fileName;
-		a.click();
-		URL.revokeObjectURL(url);
-	} else { // save to server
-		if (isFileSaving) {
-			log("File saving is already in progress.");
-			return;
-		}
-		isFileSaving = true;
-		log(`Saving ${fileName}...`);
-		saveFile(fileName, result_file).then(async (res: Response) => {
-			const json = await res.json();
-			if(json.success){
-				log(`Saved ${json.file}`);
-			} else {
-				log(`Failed to save ${json.file}`);
-			}
-		}).finally(() => {
-			isFileSaving = false;
-		});
-	}
-}
-
-async function saveFile(fileName: string, data: any): Promise<Response> {
-	return await fetch("/save", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-			file: fileName,
-			data: data
-		})
-    });
-}
-
-
 
 async function toggleSound() {
 	if(isLocked) return;
@@ -177,13 +87,36 @@ async function toggleSound() {
 				log(str);
 
 				exp(str, e.data[1], e.data[2]);
+				if(exp_runAll) {
+					if(exp_dataKey >= exp_data.length - 1) {
+						exp_runAll = false;
+					} else {
+						exp_id = exp_data[++exp_dataKey].id;
+						$(`#exp_data_${exp_id}`).trigger('click');
+						return;
+					}
+				}
 
 				toggleSound();
 				stats.text("受信しました: " + str);
 
 			} else {
-				if(e.data === 'header crc check failed')
-					exp_counting++;
+
+				if(exp_isEnable){
+					if(e.data === 'preamble detected') {
+						clearInterval(intervalId);
+					}
+
+					if(e.data === 'header crc check failed'){
+						exp_counting++;
+						socket.emit('stopSound');
+						setTimeout(() => {
+							socket.emit('playSound', exp_id);
+							runChecker();
+						}, 100);
+					}
+				}
+
 				log(e.data);
 			}
 		};
@@ -219,8 +152,6 @@ async function toggleSound() {
 	}
 }
 
-
-
 const canvas = document.getElementById('visualizer') as HTMLCanvasElement;
 const canvasCtx = canvas.getContext('2d') as CanvasRenderingContext2D;
 const WIDTH: number = canvas.width;
@@ -254,31 +185,173 @@ function visualize(): void { // https://developer.mozilla.org/ja/docs/Web/API/We
 }
 
 
+const tryStats = $('#try');
+let intervalId: number;
+let exp_counting: number = 1;
+let exp_isEnable: boolean = false;
+let exp_data: {id: number, string_data: string}[];
+let exp_id: number = 0;
 
-const ul = $('.data_list');
-$('#fileInput').on('change', async (event) => {
-	let file: File = (event.target as HTMLInputElement).files![0];
-	$('#fileLabel').text(file.name);
-	let text: string = await file.text();
-	exp_data = JSON.parse(text);
-	exp_isEnable = true;
-	exp_id = exp_data[0].id;
-	$('#exp_result').on('click', () => {
-		try {
-			exp_result($('#isLocal').prop('checked'));
-		} catch(e) {
-			log(`Error: ${e}`);
-			isFileSaving = false;
+let exp_runAll: boolean = false;
+let exp_dataKey: number = 0;
+
+function exp(payload: string, db: number, wave_data: Float32Array): void {
+	if(!exp_isEnable) return;
+	exp_isEnable = false;
+	let data = exp_data.find((d): boolean => d.id === exp_id);
+	if(data === undefined) return;
+
+	socket.emit('stopSound');
+
+	let correct: number = 0;
+	let wrong: number = 0;
+
+	let result: string = data.string_data;
+	let wrong_pattern: { [key: string]: string }[] = [];
+
+	payload.split('').forEach((c: string, i: number): void => {
+		if(c === data.string_data.charAt(i)) {
+			correct++;
+			result = result.slice(0, i) + data.string_data.charAt(i).toLowerCase() + result.slice(i + 1);
+		} else {
+			wrong_pattern.push({[data?.string_data.charAt(i)]: c});
+			wrong++;
 		}
-	}).css('display', 'block');
-	$('.dlOpts').css('display', 'flex');
-	ul.empty();
-	for(let data of exp_data) {
-		let li = $('<button>').text(data.id).addClass('data').on('click', async () => {
-			li.css('background-color', 'white').siblings().css('background-color', 'lightgray');
-			exp_id = data.id;
-			exp_counting = 1;
-		});
-		ul.append(li);
+	});
+
+	log(`Result: ${result} \n Correct: ${correct}, Wrong: ${wrong} Tries: ${exp_counting}`);
+	const exp_result = {id: exp_id, detect: payload, correct: correct, wrong: wrong, db: db, try: exp_counting, pattern: wrong_pattern, wave: Array.from(wave_data)}; // wave: Array.from(wave_data)
+
+	socket.emit('expResult', exp_result, $('#fileNameInput').val() + '.json');
+
+}
+
+function exp_result(): void { // jsonをダウンロード
+	socket.emit('requestResult');
+}
+
+import { io, Socket } from 'socket.io-client';
+import { onJoin, onPair, disconnect as D, syncConst } from "../baseScript.ts";
+let socket: Socket;
+const connect = $('#connectButton');
+const ul = $('.data_list');
+
+function disconnect() {
+	D(socket);
+	$('#roomIdInput').css('display', 'block');
+	$('.dlOpts').css('display', 'none');
+}
+
+function runChecker() {
+	if(stream instanceof MediaStream){
+		exp_isEnable = true;
+		tryStats.text(exp_counting);
+		intervalId = setInterval(() => {
+			if(!(stream instanceof MediaStream)){
+				clearInterval(intervalId);
+				exp_runAll = false;
+				return;
+			}
+			if(exp_counting > 50) {
+				clearInterval(intervalId);
+				log('Failed to receive the signal after 50 tries. Please check the connection and try again.');
+				exp_runAll = false;
+				toggleSound().then();
+				return;
+			}
+			exp_counting++;
+			tryStats.text(exp_counting);
+			socket.emit('playSound', exp_id);
+		}, SIGNAL_MS() * PREAMBLE().length * 10);
 	}
+}
+
+connect.on('click', () => {
+
+	const roomId: string = $('#roomIdInput').val() as string;
+	if(roomId === '') {
+		log('Please enter a room ID.');
+		return;
+	}
+
+	if(socket?.disconnected === false) return;
+	socket = io();
+
+	socket.on('failedJoin', (reason: string) => {
+		socket.disconnect();
+		log(`Failed to join the room: ${reason}`);
+	});
+
+	$('#disconnectButton').on('click', () => {
+		log('Disconnected from the server.');
+		disconnect();
+	});
+	socket.on('delRoom', (): void => {
+		log('Player disconnected.');
+		disconnect();
+	});
+
+	socket.on('paired', (room: string) => {
+		log('Successfully paired with the player.');
+
+		syncConst(socket);
+
+		socket.emit('syncConst', getAll());
+
+		onJoin(room);
+
+		$('#roomIdInput').css('display', 'none');
+
+		onPair(socket);
+
+		socket.on('setFile', (text: string) => {
+			log('Exp-File is set.');
+			exp_data = JSON.parse(text);
+			exp_id = exp_data[0].id;
+			$('#exp_result').on('click', () => {
+				try {
+					exp_result();
+				} catch(e) {
+					log(`Error: ${e}`);
+				}
+			});
+			$('.dlOpts').css('display', 'flex');
+			ul.empty();
+			let li = $('<button>').text('all').attr('id', 'exp_all').addClass('data').on('click', () => {
+				exp_runAll = true;
+				exp_dataKey = 0;
+				exp_id = exp_data[exp_dataKey].id;
+				$(`#exp_data_${exp_id}`).trigger('click');
+			});
+			ul.append(li);
+			for(let data of exp_data) {
+				let li = $('<button>').text(data.id).attr('id', `exp_data_${data.id}`).addClass('data').on('click', async () => {
+					socket.emit('selectId', data.id);
+				});
+				ul.append(li);
+			}
+			socket.on('selectId', async (id: number) => {
+				let li = $(`#exp_data_${id}`);
+				li.css('background-color', 'white').siblings().css('background-color', 'lightgray');
+				exp_id = id;
+				exp_counting = 1;
+				runChecker();
+			});
+		});
+
+		socket.on('sendResult', (result_file) => {
+			const fileName: string = $('#fileNameInput').val() + '.json';
+			let blob = new Blob([JSON.stringify(result_file)], {type: 'application/json'});
+			let url: string = URL.createObjectURL(blob);
+			let a = document.createElement('a');
+			a.href = url;
+			a.download = fileName;
+			a.click();
+			URL.revokeObjectURL(url);
+		});
+
+	});
+
+	socket.emit('joinRoom', roomId);
+
 });

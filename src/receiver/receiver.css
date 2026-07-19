@@ -19,9 +19,12 @@
 .dlOpts {
   display: none;
   flex-direction: column;
-  width: 30%;
+  width: 70%;
   gap: 5px;
   justify-content: center;
   align-items: center; }
+  .dlOpts p {
+    margin: 0;
+    padding: 0; }
 
 /*# sourceMappingURL=receiver.css.map */

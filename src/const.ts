@@ -7,7 +7,7 @@ const values: JQuery = $(".values");
 Object.entries(_const).forEach(([key, value]: [string, number | number[]]): void => {
 	keys.append($("<span>").text(`${key}:`));
 	let val: string;
-	const input: JQuery = $("<input>").attr('id', `const_${key}`);
+	const input: JQuery = $("<input>").attr('id', `const_${key}`).addClass('const_params');
 	if(value instanceof Array){
 		val = value.join(', ');
 		input.attr('type', 'text');
@@ -44,4 +44,16 @@ export function SIGNAL_FREQS(): Uint16Array {
 }
 export function SAMPLES_COUNT(): number {
 	return Math.floor(SAMPLING_RATE() / BAUD_RATE());
+}
+
+export function getAll(): { [key: string]: string | number | number[] } {
+	return {
+			"channels": CHANNELS(),
+			"bits_per_signal": BITS_PER_SIGNAL(),
+			"bps": BPS(),
+			"sampling_rate": SAMPLING_RATE(),
+			"signal_freq_start": SIGNAL_FREQ_START(),
+			"signal_freq_width": SIGNAL_FREQ_WIDTH(),
+			"preamble": PREAMBLE()
+		};
 }

@@ -23,10 +23,14 @@
 
 
 .dlOpts {
-  display: none;
+  display: none; // script.ts change to flex
   flex-direction: column;
-  width: 30%;
+  width: 70%;
   gap: 5px;
   justify-content: center;
   align-items: center;
+  p {
+    margin: 0;
+    padding: 0;
+  }
 }

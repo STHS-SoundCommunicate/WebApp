@@ -6,9 +6,9 @@
 	<meta name="viewport"
 		  content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
 	<title>ListenSound</title>
-  <script type="module" crossorigin src="./assets/receiver-DmvFcE-B.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/utils-D67-f0Qf.js">
-  <link rel="stylesheet" crossorigin href="./assets/receiver-CobZegKs.css">
+  <script type="module" crossorigin src="./assets/receiver-C1HqmshO.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/baseScript-CVt1vwVg.js">
+  <link rel="stylesheet" crossorigin href="./assets/receiver-Bf-eGAob.css">
 </head>
 
 <body>
@@ -34,25 +34,35 @@
 			<button class="button" id="toggleButton">
 				Listen
 			</button>
+
+
+			<button class="button" id="connectButton">
+				Connect
+			</button>
+			<label>
+				<input type="number" id="roomIdInput" placeholder="Room ID...">
+			</label>
+			<button class="button" id="disconnectButton" style="display: none;">
+				Disconnect
+			</button>
+
+
 		</div>
 
 
-
-		<label for="fileInput" style="cursor: pointer;" id="fileLabel">
+		<p id="roomInfo">RoomId: <span id="roomId"></span><br>Player connected!<br>Try: <span id="try"></span></p>
+		<label id="fileLabel">
 			Load file...
+			<input type="file" id="fileInput" accept=".json">
 		</label>
-		<input type="file" id="fileInput" accept=".json" style="display: none;">
 		<ul class="data_list">
 		</ul>
 		<div class="dlOpts">
 			<label>
 				<input type="text" id="fileNameInput" placeholder="Name...">
 			</label>
-			<label>
-				Save to local
-				<input type="checkbox" id="isLocal">
-			</label>
 			<button type="button" class="button" id="exp_result">Download</button>
+			<p>※同じroomの間はすべて同じファイルに保存されます<br>constを変更して実行する際は、再接続してください</p>
 		</div>
 
 

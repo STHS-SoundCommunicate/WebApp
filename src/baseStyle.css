@@ -83,6 +83,17 @@ body:has([popover]:popover-open) {
     .const_popover .close_button:active {
       box-shadow: none; }
 
+#roomInfo {
+  display: none;
+  margin: 0;
+  padding: 0; }
+
+#fileLabel {
+  cursor: pointer;
+  display: none; }
+  #fileLabel #fileInput {
+    display: none; }
+
 .data_list {
   list-style: none;
   display: flex;

@@ -107,7 +107,19 @@ body:has([popover]:popover-open) {
     }
 }
 
+#roomInfo {
+  display: none;
+  margin: 0;
+  padding: 0;
+}
 
+#fileLabel {
+  cursor: pointer;
+  display: none;
+  #fileInput {
+    display: none;
+  }
+}
 
 .data_list {
   list-style: none;

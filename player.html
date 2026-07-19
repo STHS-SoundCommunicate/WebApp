@@ -31,14 +31,24 @@
             <button type="button" class="button" id="genButton">
                 Generate
             </button>
+
+
+            <button type="button" class="button" id="connectButton">
+                Connect
+            </button>
+            <button type="button" class="button" id="disconnectButton" style="display: none;">
+                Disconnect
+            </button>
+
+
         </div>
 
 
-
-        <label for="fileInput" style="cursor: pointer;" id="fileLabel">
+        <p id="roomInfo">RoomId: <span id="roomId"></span><br><span id="waiting">Waiting for receiver...</span></p>
+        <label id="fileLabel">
             Load file...
+            <input type="file" id="fileInput" accept=".json">
         </label>
-        <input type="file" id="fileInput" accept=".json" style="display: none;">
         <ul class="data_list">
         </ul>
 
