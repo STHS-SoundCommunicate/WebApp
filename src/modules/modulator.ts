@@ -4,10 +4,10 @@ import StackBuffer from "../StackBuffer.ts";
 
 export abstract class modulator {
 
-	public static readonly PREAMBLE_DETECTED: 0;
-	public static readonly HEADER_CRC_CHECK_PASSED: 1;
-	public static readonly HEADER_CRC_CHECK_FAILED: 2;
-	public static readonly PAYLOAD_DETECTED: 3;
+	public static readonly PREAMBLE_DETECTED: 0 = 0;
+	public static readonly HEADER_CRC_CHECK_PASSED: 1 = 1;
+	public static readonly HEADER_CRC_CHECK_FAILED: 2 = 2;
+	public static readonly PAYLOAD_DETECTED: 3 = 3;
 
 	protected constructor(
 		public readonly SAMPLING_RATE: number

@@ -224,7 +224,7 @@ export class mfsk extends modulator {
 				if(this.wait < 10) continue; // 実験用？
 				this.wait = 0;
 
-				log("preamble detected");
+				log([mfsk.PREAMBLE_DETECTED]);
 
 				let header_index: number = isPreamble[1] + (this.SAMPLE_COUNT * this.PREAMBLE.length);
 				let buf_size: number = this.recents.length;
@@ -252,43 +252,25 @@ export class mfsk extends modulator {
 
 				if(crc_raw === crc(this.crc_data)) {
 
-					log("header crc check passed");
+					log([mfsk.HEADER_CRC_CHECK_PASSED]);
 
-					log("Waiting for payload...");
 					let payloads: StackBuffer = new StackBuffer(yield* stackBuffer.waitSamples(this.SAMPLE_COUNT * payload_length));
-					log("Payload received");
-
-
-					let sum: number = 0;
-					let payloads_copy: Float32Array = payloads.clone().readSamples();
-					payloads_copy.forEach((value) => {
-						sum += value * value;
-					});
-					const rms: number = Math.sqrt(sum / payloads_copy.length);
-					const db: number = rms > 0 ? 20 * Math.log10(rms) : -Infinity;
-					log(`Ave-Vol ${db} dBFS`);
-
-
+					let payloads_wave: Float32Array = payloads.clone().readSamples();
 					let payload_symbols: number[] = [];
 					for(let _: number = 0; _ < payload_length; ++_)
 						payload_symbols.push(this.detectSymbol(payloads.readSamples(this.SAMPLE_COUNT)));
 					log(`[${this.PREAMBLE.join(', ')}, ${this.crc_data.join(', ')}, ${c8_hi}, ${c8_lo}, ${payload_symbols.join(', ')}]`);
 					let payload_bits: Uint8Array = this.symbol2bits(payload_symbols);
 
-					log([payload_bits, db, payloads_copy]); // postMessage
+					log([mfsk.PAYLOAD_DETECTED, payload_bits, payloads_wave]); // postMessage
 
 				} else {
-					log("header crc check failed");
+					log([mfsk.HEADER_CRC_CHECK_FAILED]);
 				}
-
 			}
-
 			yield; // 一周だけで止める
 		}
 	}
-
-
-
 
 
 

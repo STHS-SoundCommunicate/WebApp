@@ -1,5 +1,7 @@
 import $ from 'jquery';
 
+import { mfsk } from "../modules/mfsk.ts";
+
 import {
 	BITS_PER_SIGNAL,
 	PREAMBLE,
@@ -81,38 +83,64 @@ async function toggleSound() {
 
 		audioProcessorNode.port.onmessage = (e: MessageEvent): void => {
 			if(stream === undefined) return;
-			if(e.data instanceof Array) {
+			if(!(e.data instanceof Array)) {
+				log(e.data);
+				return;
+			}
 
-				let str: string = decodeUTF8(e.data[0]);
-				log(str);
-
-				exp(str, e.data[1], e.data[2]);
-				if(exp_runAll) {
-					if(exp_dataKey >= exp_data.length - 1) {
-						exp_runAll = false;
-					} else {
-						exp_id = exp_data[++exp_dataKey].id;
-						$(`#exp_data_${exp_id}`).trigger('click');
-						return;
-					}
-				}
-
-				toggleSound();
-				stats.text("受信しました: " + str);
-
-			} else {
-
-				if(exp_isEnable){
-					if(e.data === 'preamble detected')
-						isReceived = true;
-					if(e.data === 'header crc check failed'){
+			switch(e.data[0]) {
+				case mfsk.PREAMBLE_DETECTED:
+					log('Preamble Detected');
+					if(exp_isEnable) isReceived = true;
+				break;
+				case mfsk.HEADER_CRC_CHECK_FAILED:
+					log('Header CRC Check Failed');
+					if(exp_isEnable) {
 						exp_counting++;
 						tryStats.text(exp_counting);
 						scheduleRetry();
 					}
-				}
+				break;
+				case mfsk.HEADER_CRC_CHECK_PASSED:
+					log('Header CRC Check Passed');
+					log('Waiting for payload...');
+				break;
+				case mfsk.PAYLOAD_DETECTED:
+					log('Payload Detected');
 
-				log(e.data);
+					let str: string = decodeUTF8(e.data[1]);
+					log(str);
+
+
+
+					let sum: number = 0;
+					e.data[2].forEach((value: number) => {
+						sum += value * value;
+					});
+					const rms: number = Math.sqrt(sum / e.data[2].length);
+					const db: number = rms > 0 ? 20 * Math.log10(rms) : -Infinity;
+
+					log(`Ave-Vol ${db} dBFS`);
+
+					exp(str, db, e.data[2]);
+					if(exp_runAll) {
+						if(exp_dataKey >= exp_data.length - 1) {
+							exp_runAll = false;
+						} else {
+							exp_id = exp_data[++exp_dataKey].id;
+							$(`#exp_data_${exp_id}`).trigger('click');
+							return;
+						}
+					}
+
+
+
+					toggleSound();
+					stats.text("受信しました: " + str);
+				break;
+				default:
+					log(`Unknown message received: ${e.data}`);
+				break;
 			}
 		};
 
