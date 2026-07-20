@@ -103,17 +103,12 @@ async function toggleSound() {
 			} else {
 
 				if(exp_isEnable){
-					if(e.data === 'preamble detected') {
-						clearInterval(intervalId);
-					}
-
+					if(e.data === 'preamble detected')
+						isReceived = true;
 					if(e.data === 'header crc check failed'){
 						exp_counting++;
-						socket.emit('stopSound');
-						setTimeout(() => {
-							socket.emit('playSound', exp_id);
-							runChecker();
-						}, 100);
+						tryStats.text(exp_counting);
+						scheduleRetry();
 					}
 				}
 
@@ -185,8 +180,8 @@ function visualize(): void { // https://developer.mozilla.org/ja/docs/Web/API/We
 }
 
 
+
 const tryStats = $('#try');
-let intervalId: number;
 let exp_counting: number = 1;
 let exp_isEnable: boolean = false;
 let exp_data: {id: number, string_data: string}[];
@@ -198,10 +193,9 @@ let exp_dataKey: number = 0;
 function exp(payload: string, db: number, wave_data: Float32Array): void {
 	if(!exp_isEnable) return;
 	exp_isEnable = false;
+	clearCheckerTimers();
 	let data = exp_data.find((d): boolean => d.id === exp_id);
 	if(data === undefined) return;
-
-	socket.emit('stopSound');
 
 	let correct: number = 0;
 	let wrong: number = 0;
@@ -226,10 +220,6 @@ function exp(payload: string, db: number, wave_data: Float32Array): void {
 
 }
 
-function exp_result(): void { // jsonをダウンロード
-	socket.emit('requestResult');
-}
-
 import { io, Socket } from 'socket.io-client';
 import { onJoin, onPair, disconnect as D, syncConst } from "../baseScript.ts";
 let socket: Socket;
@@ -242,27 +232,58 @@ function disconnect() {
 	$('.dlOpts').css('display', 'none');
 }
 
+let isReceived: boolean = false;
+let retryTimeoutId: number | undefined;
+let checkerTimeoutId: number | undefined;
+
+function clearCheckerTimers(): void {
+	if(checkerTimeoutId !== undefined) {
+		clearTimeout(checkerTimeoutId);
+		checkerTimeoutId = undefined;
+	}
+
+	if(retryTimeoutId !== undefined) {
+		clearTimeout(retryTimeoutId);
+		retryTimeoutId = undefined;
+	}
+}
+
+function scheduleRetry(): void {
+	if(retryTimeoutId !== undefined)
+		clearTimeout(retryTimeoutId);
+
+	socket.emit('stopSound');
+
+	retryTimeoutId = setTimeout(() => {
+		retryTimeoutId = undefined;
+		socket.emit('playSound', exp_id);
+		runChecker();
+	}, 500); // 1/4秒ぐらい待っとけば前の音が残らなそう
+}
+
 function runChecker() {
 	if(stream instanceof MediaStream){
 		exp_isEnable = true;
 		tryStats.text(exp_counting);
-		intervalId = setInterval(() => {
+		isReceived = false;
+		checkerTimeoutId = window.setTimeout(() => {
 			if(!(stream instanceof MediaStream)){
-				clearInterval(intervalId);
 				exp_runAll = false;
+				exp_isEnable = false;
 				return;
 			}
-			if(exp_counting > 50) {
-				clearInterval(intervalId);
+			if(exp_counting >= 50) { // 50回やって無理なら無理だろ
 				log('Failed to receive the signal after 50 tries. Please check the connection and try again.');
 				exp_runAll = false;
+				exp_isEnable = false;
 				toggleSound().then();
 				return;
 			}
+			if(isReceived) return;
 			exp_counting++;
 			tryStats.text(exp_counting);
-			socket.emit('playSound', exp_id);
-		}, SIGNAL_MS() * PREAMBLE().length * 10);
+			scheduleRetry();
+		}, SIGNAL_MS() * PREAMBLE().length * 20); // 20は適当 (ほんとは1でもいいはずだが、余裕を持たせるために大きめにしている)
 	}
 }
 
@@ -309,11 +330,7 @@ connect.on('click', () => {
 			exp_data = JSON.parse(text);
 			exp_id = exp_data[0].id;
 			$('#exp_result').on('click', () => {
-				try {
-					exp_result();
-				} catch(e) {
-					log(`Error: ${e}`);
-				}
+				socket.emit('requestResult'); // request server to send the result file
 			});
 			$('.dlOpts').css('display', 'flex');
 			ul.empty();
@@ -335,6 +352,7 @@ connect.on('click', () => {
 				li.css('background-color', 'white').siblings().css('background-color', 'lightgray');
 				exp_id = id;
 				exp_counting = 1;
+				clearCheckerTimers();
 				runChecker();
 			});
 		});

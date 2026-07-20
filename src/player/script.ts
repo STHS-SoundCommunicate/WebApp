@@ -4,15 +4,29 @@ import { mfsk } from "../modules/mfsk.ts";
 import $ from 'jquery';
 
 let lastNode: AudioBufferSourceNode | undefined;
+let audioCtx: AudioContext | undefined;
+let lastSampleRate: number = SAMPLING_RATE();
+
+async function unlockAudio(): Promise<void> {
+	if(audioCtx === undefined || lastSampleRate !== SAMPLING_RATE()) {
+		audioCtx = new AudioContext({
+			sampleRate: SAMPLING_RATE(),
+			latencyHint: 'playback'
+		});
+	}
+
+	if(audioCtx.state === 'suspended')
+		await audioCtx.resume();
+}
 
 async function playSound(sinData: Float32Array, sampleRate: number = SAMPLING_RATE()) {
 
 	lastNode?.stop(); // 再生中のものを停止
 
-	const audioCtx = new AudioContext({ // https://developer.mozilla.org/ja/docs/Web/API/AudioContext/AudioContext
-		sampleRate: sampleRate,
-		latencyHint: 'playback'
-	});
+	await unlockAudio();
+
+	if(audioCtx === undefined)
+		return; // これでいいのか？
 
 	// AudioBufferの作成 (1チャンネル(モノラル), サンプル数, サンプリングレート)
 	const audioBuffer: AudioBuffer = audioCtx.createBuffer(1, sinData.length, sampleRate);
@@ -47,6 +61,9 @@ const connect = $('#connectButton');
 let exp_data: {id: number, string_data: string}[] = [];
 
 connect.on('click', () => {
+
+	unlockAudio().then();
+
 	if(socket?.disconnected === false) return;
 	socket = io();
 
@@ -79,13 +96,11 @@ connect.on('click', () => {
 					});
 					ul.append(li);
 				}
-
 				socket.on('selectId', async (id: number) => {
 					let li = $(`#exp_data_${id}`);
 					li.css('background-color', 'white').siblings().css('background-color', 'lightgray');
 					socket.emit('playSound', id);
 				});
-
     		});
 
 			socket.on('playSound', async (id: number) => {
