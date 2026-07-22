@@ -1,4 +1,4 @@
-import _const from './const.json';
+import _const from './libs/TextWaver/const.json';
 import $ from "jquery";
 
 const keys: JQuery = $(".keys");

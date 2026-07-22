@@ -276,7 +276,7 @@ export class mfsk extends modulator {
 
 
 
-	public generateWave(bits: Uint8Array): Float32Array { // bits: 符号化されたデータ（ヘッダなども含む）
+	public generateWave(bits: Uint8Array): Float32Array { // bits: 符号化されたデータ
 		const index: Uint8Array = this.bits2index(bits);
 		const header: Uint8Array = this.generateHeader(index);
 
@@ -314,7 +314,7 @@ export class mfsk extends modulator {
 	}
 
 	private bits2index(bits: Uint8Array): Uint8Array { // mfskでは4bitを1indexとして管理するため、4bitごとに管理
-		let result: Uint8Array = new Uint8Array(Math.floor(bits.length / this.BITS_PER_SIGNAL)); // TODO: Check -> 要素数怪しい
+		let result: Uint8Array = new Uint8Array(Math.floor(bits.length / this.BITS_PER_SIGNAL));
 		let key: number = 0;
 		for(let i: number = 0; i < bits.length; i += this.BITS_PER_SIGNAL) {
 			let index: number = 0;
@@ -322,7 +322,7 @@ export class mfsk extends modulator {
 				index = (index << 1) | bits[i + j];
 			result[key++] = index;
 		}
-		return new Uint8Array(result);
+		return result;
 	}
 
 }

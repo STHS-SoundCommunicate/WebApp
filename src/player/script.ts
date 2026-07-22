@@ -1,6 +1,6 @@
 import { BITS_PER_SIGNAL, PREAMBLE, SAMPLES_COUNT, SAMPLING_RATE, SIGNAL_FREQS, SIGNAL_MS } from "../const.ts";
-import { str2bits } from "../utils.ts";
-import { mfsk } from "../modules/mfsk.ts";
+import { str2bits } from "../libs/TextWaver/utils.ts";
+import { mfsk } from "../libs/TextWaver/modules/mfsk.ts";
 import $ from 'jquery';
 
 let lastNode: AudioBufferSourceNode | undefined;

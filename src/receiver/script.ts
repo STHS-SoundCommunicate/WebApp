@@ -1,6 +1,6 @@
 import $ from 'jquery';
 
-import { mfsk } from "../modules/mfsk.ts";
+import { mfsk } from "../libs/TextWaver/modules/mfsk.ts";
 
 import {
 	BITS_PER_SIGNAL,
@@ -12,9 +12,9 @@ import {
 	getAll
 } from "../const.ts";
 
-import { decodeUTF8 } from "../utils.ts"; // ライブラリ化するならここもまとめた方がいいかな
+import { decodeUTF8 } from "../libs/TextWaver/utils.ts"; // ライブラリ化するならここもまとめた方がいいかな
 // @ts-ignore
-import processorUrl from "../audioProcessor.ts?worker&url";
+import processorUrl from "../libs/TextWaver/audioProcessor.ts?worker&url";
 
 const button: JQuery = $('#toggleButton');
 button.on('click', toggleSound);

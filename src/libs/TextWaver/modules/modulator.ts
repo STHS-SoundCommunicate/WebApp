@@ -17,7 +17,7 @@ export abstract class modulator {
 
 	/*
 	log() : MessagePortのpostMessageを用いて、script.tsに送信する
-	ArrayBufferが渡されたときのみ解析後のデータである。それ以外はデバッグログ
+	Stateフラグとデータを配列形式で渡す。そのほかはデバッグログ系統。
 	 */
 	public abstract process(stackBuffer: StackBuffer, log: (s: any) => void): Generator;
 
