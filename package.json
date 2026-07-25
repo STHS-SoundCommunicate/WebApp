@@ -23,6 +23,7 @@
   "dependencies": {
     "@types/jquery": "^4.0.0",
     "@vitejs/plugin-basic-ssl": "^2.3.0",
+    "fft.js": "^4.0.4",
     "jquery": "^4.0.0",
     "socket.io-client": "^4.8.3",
     "vite": "8.0.5"

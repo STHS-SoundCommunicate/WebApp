@@ -6,6 +6,13 @@ import { modulator } from './modulator.ts';
 import { concat, crc, isEqual } from "../utils.ts";
 import StackBuffer from "../StackBuffer.ts";
 
+interface Complex {
+	re: number;
+	im: number;
+}
+
+import FFT from 'fft.js';
+
 export class mfsk extends modulator {
 
 	private readonly HALF_SAMPLE_COUNT: number;
@@ -52,81 +59,166 @@ export class mfsk extends modulator {
 		return (s_prev2 * s_prev2) + (s_prev * s_prev) - (coeff * s_prev * s_prev2); // ほんとは平方根だけど、比較できればいいので具体的な数字は必要ない
 	}
 
-	private nextPowerOfTwo(n: number): number {
-		return 1 << Math.ceil(Math.log2(n));
+	private nextPowerOfTwo(n: number): number { // 0埋め用
+		return 1 << Math.ceil(Math.log2(n)); // 1 << (32 - Math.clz32(Nd - 1));
 	}
 
-	private fftReal(samples: Float32Array): { re: Float64Array; im: Float64Array } {
-		const N: number = this.nextPowerOfTwo(samples.length);
-		const re: Float64Array = new Float64Array(N);
-		const im: Float64Array = new Float64Array(N);
-
-		for (let i: number = 0; i < samples.length; ++i) {
-			re[i] = samples[i];
-		}
-
-		this.fftInPlace(re, im);
-
-		return { re, im };
+	private fft(f: Float32Array) {
+		const N: number = this.nextPowerOfTwo(f.length);
+		const fft = new FFT(N);
+		const input = new Array(N);
+		input.fill(0);
+		f.forEach((v, i) => input[i] = v);
+		const out = fft.createComplexArray();
+		fft.realTransform(out, input);
+		fft.completeSpectrum(out);
+		return out; // [ream, image, real, image, ...]
 	}
 
-	private fftInPlace(re: Float64Array, im: Float64Array): void {
-		const N: number = re.length;
 
-		for (let i: number = 1, j: number = 0; i < N; ++i) {
-			let bit: number = N >> 1;
 
-			for (; (j & bit) !== 0; bit >>= 1) j ^= bit;
+	// private fftReal(samples: Float32Array): { re: Float64Array; im: Float64Array } {
+	// 	const N: number = this.nextPowerOfTwo(samples.length);
+	// 	const re: Float64Array = new Float64Array(N);
+	// 	const im: Float64Array = new Float64Array(N);
+	//
+	// 	for (let i: number = 0; i < samples.length; ++i) {
+	// 		re[i] = samples[i];
+	// 	}
+	//
+	// 	this.fftInPlace(re, im);
+	//
+	// 	return { re, im };
+	// }
+	//
+	// private fftInPlace(re: Float64Array, im: Float64Array): void {
+	// 	const N: number = re.length;
+	//
+	// 	for (let i: number = 1, j: number = 0; i < N; ++i) {
+	// 		let bit: number = N >> 1;
+	//
+	// 		for (; (j & bit) !== 0; bit >>= 1) j ^= bit;
+	//
+	// 		j ^= bit;
+	//
+	// 		if (i < j) {
+	// 			const tr: number = re[i];
+	// 			const ti: number = im[i];
+	//
+	// 			re[i] = re[j];
+	// 			im[i] = im[j];
+	// 			re[j] = tr;
+	// 			im[j] = ti;
+	// 		}
+	// 	}
+	//
+	// 	for (let len: number = 2; len <= N; len <<= 1) {
+	// 		const angle: number = -2 * Math.PI / len;
+	// 		const wlenR: number = Math.cos(angle);
+	// 		const wlenI: number = Math.sin(angle);
+	//
+	// 		for (let i: number = 0; i < N; i += len) {
+	// 			let wr: number = 1;
+	// 			let wi: number = 0;
+	//
+	// 			for (let j: number = 0; j < len / 2; ++j) {
+	// 				const uR: number = re[i + j];
+	// 				const uI: number = im[i + j];
+	//
+	// 				const vR: number = re[i + j + len / 2] * wr - im[i + j + len / 2] * wi;
+	// 				const vI: number = re[i + j + len / 2] * wi + im[i + j + len / 2] * wr;
+	//
+	// 				re[i + j] = uR + vR;
+	// 				im[i + j] = uI + vI;
+	//
+	// 				re[i + j + len / 2] = uR - vR;
+	// 				im[i + j + len / 2] = uI - vI;
+	//
+	// 				const nextWr: number = wr * wlenR - wi * wlenI;
+	// 				wi = wr * wlenI + wi * wlenR;
+	// 				wr = nextWr;
+	// 			}
+	// 		}
+	// 	}
+	// }
 
-			j ^= bit;
+	// private expi(theta: number): Complex {return { re: Math.cos(theta), im: Math.sin(theta) };}
+	// private iadd(a: Complex, b: Complex): Complex {return { re: a.re + b.re, im: a.im + b.im };}
+	// private isub(a: Complex, b: Complex): Complex {return { re: a.re - b.re, im: a.im - b.im };}
+	// private imul(a: Complex, b: Complex): Complex {return { re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re };}
+	//
+	// private revBit(k: number, n: number): number {
+	// 	let r: number = 0;
+	// 	for (let i: number = 0; i < k; i++) r = (r << 1) | ((n >>> i) & 1);
+	// 	return r;
+	// }
+	//
+	// private fftin1(c: Complex[], T: number, N: number): Complex[] {
+	// 	const k: number = Math.log2(N);
+	// 	const rec: Complex[] = c.map((_, i) => c[this.revBit(k, i)]);
+	// 	for (let Nh: number = 1; Nh < N; Nh *= 2) {
+	// 		T /= 2;
+	// 		for (let s: number = 0; s < N; s += Nh * 2) {
+	// 			for (let i: number = 0; i < Nh; i++) {
+	// 				const l: Complex = rec[s + i];
+	// 				const re: Complex = this.imul(rec[s + i + Nh], this.expi(T * i));
+	// 				[rec[s + i], rec[s + i + Nh]] = [this.iadd(l, re), this.isub(l, re)];
+	// 			}
+	// 		}
+	// 	}
+	// 	return rec;
+	// }
+	//
+	// private fft1(f: Complex[]): Complex[] {
+	// 	const N: number = f.length, T: number = -2 * Math.PI;
+	// 	return this.fftin1(f, T, N);
+	// }
+	//
+	// private ifft1(F: Complex[]): Complex[] {
+	// 	const N: number = F.length, T: number = 2 * Math.PI;
+	// 	return this.fftin1(F, T, N).map((c: Complex): Complex => ({ re: c.re / N, im: c.im / N }));
+	// }
+	//
+	// private conj(c: Complex): Complex {return { re: c.re, im: -c.im };}
+	//
+	// private fftin2(c: Complex[], T: number, N: number): Complex[] {
+	// 	const Nd: number = N * 2;
+	// 	const bc: Complex[] = c.map((_, n) => this.expi(T * n * n / Nd));
+	// 	const b: Complex[] = bc.map((v) => this.conj(v));
+	// 	const a: Complex[] = c.map((cn, n) => this.imul(cn, bc[n]));
+	// 	const N2: number = 1 << (32 - Math.clz32(Nd - 1));
+	// 	const a2: Complex[] = a.concat(Array(N2 - N).fill({ re: 0, im: 0 }));
+	// 	const b2: Complex[] = b.concat(Array(N2 - Nd + 1).fill({ re: 0, im: 0 }), b.slice(1).reverse());
+	// 	const A2: Complex[] = this.fft1(a2);
+	// 	const B2: Complex[] = this.fft1(b2);
+	// 	const AB2: Complex[] = A2.map((A2n, n) => this.imul(A2n, B2[n]));
+	// 	const ab2: Complex[] = this.ifft1(AB2);
+	// 	return bc.map((bcn, n) => this.imul(bcn, ab2[n]));
+	// }
+	//
+	// private isPowerOf2(n: number): boolean {return (n & (n - 1)) === 0;}
+	// private fft(f: Float32Array): Complex[] {
+	// 	const sample: Complex[] = Array.from(f, (v) => ({ re: v, im: 0 }));
+	// 	const N: number = sample.length, T: number = -2 * Math.PI;
+	// 	const fftin: (c: Complex[], T: number, N: number) => Complex[] = this.isPowerOf2(N) ? this.fftin1 : this.fftin2;
+	// 	return fftin(sample, T, N);
+	// }
 
-			if (i < j) {
-				const tr: number = re[i];
-				const ti: number = im[i];
-
-				re[i] = re[j];
-				im[i] = im[j];
-				re[j] = tr;
-				im[j] = ti;
-			}
-		}
-
-		for (let len: number = 2; len <= N; len <<= 1) {
-			const angle: number = -2 * Math.PI / len;
-			const wlenR: number = Math.cos(angle);
-			const wlenI: number = Math.sin(angle);
-
-			for (let i: number = 0; i < N; i += len) {
-				let wr: number = 1;
-				let wi: number = 0;
-
-				for (let j: number = 0; j < len / 2; ++j) {
-					const uR: number = re[i + j];
-					const uI: number = im[i + j];
-
-					const vR: number = re[i + j + len / 2] * wr - im[i + j + len / 2] * wi;
-					const vI: number = re[i + j + len / 2] * wi + im[i + j + len / 2] * wr;
-
-					re[i + j] = uR + vR;
-					im[i + j] = uI + vI;
-
-					re[i + j + len / 2] = uR - vR;
-					im[i + j + len / 2] = uI - vI;
-
-					const nextWr: number = wr * wlenR - wi * wlenI;
-					wi = wr * wlenI + wi * wlenR;
-					wr = nextWr;
-				}
-			}
-		}
-	}
-
-	private score(spectrum: { re: Float64Array; im: Float64Array }, freq: number): number {
-		const N: number = spectrum.re.length;
-		const bin: number = Math.round((18000 * N) / this.SAMPLING_RATE);
+	private s(fft: any[], freq: number): number {
+		const N: number = fft.length / 2; // fft.length must be 2N
+		const bin: number = Math.round((freq * N) / this.SAMPLING_RATE);
 		if (bin < 0 || bin >= N / 2) return 0;
-		const real: number = spectrum.re[bin];
-		const imag: number = spectrum.im[bin];
+		const real: number = fft[bin*2];
+		const imag: number = fft[bin*2 + 1];
+		return (real * real) + (imag * imag);
+	}
+
+	private score(spectrum: Complex[], freq: number): number {
+		const N: number = spectrum.length;
+		const bin: number = Math.round((freq * N) / this.SAMPLING_RATE);
+		if (bin < 0 || bin >= N / 2) return 0;
+		const real: number = spectrum[bin].re;
+		const imag: number = spectrum[bin].im;
 		console.log((real * real) + (imag * imag));
 		return (real * real) + (imag * imag);
 	}
@@ -134,18 +226,16 @@ export class mfsk extends modulator {
 	public detectSymbol(samples: Float32Array): number {
 		let max_freq: number = -1; // はたしてやっていい初期化なのだろうか
 		let max_db: number = -Infinity;
+		// let fft: Complex[] = this.fft(samples);
 		this.SIGNAL_FREQS.forEach((f: number, i: number): void => {
-			let score: number = this.getScore(samples, f);
+			let score: number = this.goertzel(samples, f);
+			// let score: number = this.score(fft, f);
 			if(score > max_db) {
 				max_db = score;
 				max_freq = i; // 何個目のチャンネルか
 			}
 		});
 		return max_freq; // return index, not [Hz]
-	}
-
-	private getScore(samples: Float32Array, freq: number): number { // もっといい感じに管理できないかな
-		return this.goertzel(samples, freq);
 	}
 
 
@@ -196,7 +286,7 @@ export class mfsk extends modulator {
 		let temp_max: number = 0;
 		let start_preamble: number = phase_offset;
 		for(let i: number = start_preamble; i < phase_offset + this.HALF_SAMPLE_COUNT; ++i) {
-			let score: number = this.getScore(this.recents.slice(i, i + this.HALF_SAMPLE_COUNT), this.SIGNAL_FREQS[0]);
+			let score: number = this.goertzel(this.recents.slice(i, i + this.HALF_SAMPLE_COUNT), this.SIGNAL_FREQS[0]); // TODO: 計算効率の向上はできないか？
 			if(score > temp_max) {
 				temp_max = score;
 				start_preamble = i;
