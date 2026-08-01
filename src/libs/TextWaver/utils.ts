@@ -55,4 +55,6 @@ export interface ConstValues {
 	SIGNAL_MS: number;
 	SAMPLES_COUNT: number;
 	useFFT: boolean;
+	useRS: boolean;
+	RS_ErrorLength: number;
 }

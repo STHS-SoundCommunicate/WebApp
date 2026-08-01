@@ -50,7 +50,7 @@ $("#genButton").on('click', async () => {
 
 
 import { io, Socket } from 'socket.io-client';
-import {onJoin, onPair, disconnect, syncConst} from '../baseScript.ts';
+import { onJoin, onPair, disconnect, syncConst } from '../baseScript.ts';
 
 let socket: Socket;
 

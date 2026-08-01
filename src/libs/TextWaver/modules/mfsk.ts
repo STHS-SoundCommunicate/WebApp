@@ -13,6 +13,9 @@ import StackBuffer from "../StackBuffer.ts";
 
 import FFT from 'fft.js';
 
+// @ts-ignore
+import { encode, decode } from '../RSCode.js'; // TODO: tsで書き直す
+
 export class mfsk extends modulator {
 
 	private readonly HALF_SAMPLE_COUNT: number;
@@ -256,7 +259,7 @@ export class mfsk extends modulator {
 		this.symbols_index = (this.symbols_index + 1) % this.symbols.length;
 	}
 
-	private symbol2bits(symbols: number[]): Uint8Array {
+	private symbol2bits(symbols: Uint8Array): Uint8Array {
 		let bits: number[] = [];
 		symbols.forEach((s: number): void => {
 			for(let i: number = this.constValues.BITS_PER_SIGNAL - 1; i >= 0; --i)
@@ -357,13 +360,25 @@ export class mfsk extends modulator {
 
 					let payloads: StackBuffer = new StackBuffer(yield* stackBuffer.waitSamples(this.constValues.SAMPLES_COUNT * payload_length));
 					let payloads_wave: Float32Array = payloads.clone().readSamples();
-					let payload_symbols: number[] = [];
-					for(let _: number = 0; _ < payload_length; ++_)
-						payload_symbols.push(this.detectSymbol(payloads.readSamples(this.constValues.SAMPLES_COUNT)));
-					log(`[${this.constValues.PREAMBLE.join(', ')}, ${this.crc_data.join(', ')}, ${c8_hi}, ${c8_lo}, ${payload_symbols.join(', ')}]`);
-					let payload_bits: Uint8Array = this.symbol2bits(payload_symbols);
+					let payload_symbols: Uint8Array = new Uint8Array(payload_length); // TODO: Uint8でいいのか？Arrayでもあんまかわらん
+					for(let i: number = 0; i < payload_length; ++i)
+						payload_symbols[i] = this.detectSymbol(payloads.readSamples(this.constValues.SAMPLES_COUNT));
 
-					log([mfsk.PAYLOAD_DETECTED, payload_bits, payloads_wave]); // postMessage
+					log(`[${this.constValues.PREAMBLE.join(', ')}, ${this.crc_data.join(', ')}, ${c8_hi}, ${c8_lo}, ${payload_symbols.join(', ')}]`);
+
+
+					if(this.constValues.useRS) {
+						const decoded: boolean = decode(payload_symbols, this.constValues.RS_ErrorLength);
+						if(!decoded) {
+							log([mfsk.RS_DECODE_FAILED]);
+							continue;
+						}
+						payload_symbols = payload_symbols.slice(0, -this.constValues.RS_ErrorLength);
+					}
+
+
+					let payload_bits: Uint8Array = this.symbol2bits(payload_symbols);
+					log([mfsk.PAYLOAD_DETECTED, payload_bits, payloads_wave]);
 
 				} else {
 					log([mfsk.HEADER_CRC_CHECK_FAILED]);
@@ -378,8 +393,21 @@ export class mfsk extends modulator {
 
 
 	public generateWave(bits: Uint8Array): Float32Array { // bits: 符号化されたデータ
-		const index: Uint8Array = this.bits2index(bits);
+
+		let index: Uint8Array = this.bits2index(bits);
+
+
+		if(this.constValues.useRS){
+			let temp: Uint8Array = new Uint8Array(index.length + this.constValues.RS_ErrorLength);
+			temp.set(index);
+			encode(temp, this.constValues.RS_ErrorLength);
+			index = temp;
+		}
+
+
 		const header: Uint8Array = this.generateHeader(index);
+
+		console.log(`[${header.join(', ')}, ${index.join(', ')}]`);
 
 		const n_signals: number = Math.floor(this.constValues.SAMPLING_RATE * this.constValues.SIGNAL_MS / 1000);
 		const duration: number = n_signals / this.constValues.SAMPLING_RATE;
@@ -407,9 +435,8 @@ export class mfsk extends modulator {
 		const payload_length_symbols: number[]  = [len >> 4, len & 0xF];
 		const message_id_symbols: number[] = [messageId >> 4, messageId & 0xF];
 		const header_info_symbols: number[] = payload_length_symbols.concat(message_id_symbols);
-		console.log(header_info_symbols);
 		const c: number = crc(new Uint8Array(header_info_symbols));
-		console.log(`info_data : ${header_info_symbols}, crc : ${c}`);
+		// console.log(`info_data: ${header_info_symbols}, crc: ${c}`);
 		const cyc_symbols: number[] = [c >> 4, c & 0xF];
 		return new Uint8Array(this.constValues.PREAMBLE.concat(header_info_symbols).concat(cyc_symbols));
 	}

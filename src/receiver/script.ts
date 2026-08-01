@@ -128,6 +128,14 @@ async function toggleSound() {
 					toggleSound();
 					stats.text("受信しました: " + str);
 				break;
+				case mfsk.RS_DECODE_FAILED:
+					log('RS Decode Failed');
+					if(exp_isEnable) {
+						exp_counting++;
+						tryStats.text(exp_counting);
+						scheduleRetry();
+					}
+				break;
 				default:
 					log(`Unknown message received: ${e.data}`);
 				break;

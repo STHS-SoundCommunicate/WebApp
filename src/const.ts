@@ -56,6 +56,10 @@ export function SAMPLES_COUNT(): number {
 
 export function useFFT(): boolean { return $('#const_useFFT').prop('checked'); }
 
+export function useRS(): boolean { return $('#const_useRS').prop('checked'); }
+export function RS_ErrorLength(): number { return Number($(`#const_RS_ErrorLength`).val()); }
+
+
 import { ConstValues } from "./libs/TextWaver/utils.ts";
 export function getAll(): ConstValues {
 	return {
@@ -69,6 +73,8 @@ export function getAll(): ConstValues {
 			"SIGNAL_FREQS": SIGNAL_FREQS(),
 			"SIGNAL_MS": SIGNAL_MS(),
 			"SAMPLES_COUNT": SAMPLES_COUNT(),
-			"useFFT": useFFT()
+			"useFFT": useFFT(),
+			"useRS": useRS(),
+			"RS_ErrorLength": RS_ErrorLength()
 		};
 }

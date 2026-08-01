@@ -13,17 +13,13 @@ class audioProcessor extends AudioWorkletProcessor {
 
 	constructor(options: AudioWorkletNodeOptions) {
 		super();
-
 		this.stackBuffer = new StackBuffer(new Float32Array(0));
-
 		this.m = new mfsk(options.processorOptions); // constが書き換えられる可能性のために毎回生成
-
 		const log = (s: any) => {
 			// @ts-ignore
 			this.port.postMessage(s);
 		};
 		this.generator = this.m.process(this.stackBuffer, log); // クラスのアドレス値が渡されて、変更も反映されるはず、、、
-
 	}
 
 	// noinspection JSUnusedGlobalSymbols

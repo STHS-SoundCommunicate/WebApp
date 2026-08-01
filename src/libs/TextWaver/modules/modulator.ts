@@ -10,6 +10,8 @@ export abstract class modulator {
 	public static readonly HEADER_CRC_CHECK_FAILED: 2 = 2;
 	public static readonly PAYLOAD_DETECTED: 3 = 3;
 
+	public static readonly RS_DECODE_FAILED: 4 = 4;
+
 	protected constructor(
 		public readonly constValues: ConstValues
 	) {}
