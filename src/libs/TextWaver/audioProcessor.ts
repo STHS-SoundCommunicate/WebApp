@@ -16,12 +16,7 @@ class audioProcessor extends AudioWorkletProcessor {
 
 		this.stackBuffer = new StackBuffer(new Float32Array(0));
 
-		this.m = new mfsk(options.processorOptions.SAMPLE_RATE,
-						  options.processorOptions.SIGNAL_FREQS,
-			 			  options.processorOptions.PREAMBLE,
-						  options.processorOptions.BITS_PER_SIGNAL,
-						  options.processorOptions.SIGNAL_MS,
-						  options.processorOptions.SAMPLES_COUNT);
+		this.m = new mfsk(options.processorOptions); // constが書き換えられる可能性のために毎回生成
 
 		const log = (s: any) => {
 			// @ts-ignore

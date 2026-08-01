@@ -1,4 +1,4 @@
-import { BITS_PER_SIGNAL, PREAMBLE, SAMPLES_COUNT, SAMPLING_RATE, SIGNAL_FREQS, SIGNAL_MS } from "../const.ts";
+import {getAll, SAMPLING_RATE} from "../const.ts";
 import { str2bits } from "../libs/TextWaver/utils.ts";
 import { mfsk } from "../libs/TextWaver/modules/mfsk.ts";
 import $ from 'jquery';
@@ -40,17 +40,16 @@ async function playSound(sinData: Float32Array, sampleRate: number = SAMPLING_RA
 }
 
 $("#genButton").on('click', async () => {
-	let m: mfsk = new mfsk(SAMPLING_RATE(), SIGNAL_FREQS(), PREAMBLE(), BITS_PER_SIGNAL(), SIGNAL_MS(), SAMPLES_COUNT()); // constが書き換えられる可能性のために毎回生成
+	let m: mfsk = new mfsk(getAll()); // constが書き換えられる可能性のために毎回生成
 	let payload: string = $("#charArea").val() as string;
 	let bits: Uint8Array = str2bits(payload);
 	let waves: Float32Array = m.generateWave(bits);
-	await playSound(waves, m.SAMPLING_RATE);
+	await playSound(waves, m.constValues.SAMPLING_RATE);
 });
 
 
 
 import { io, Socket } from 'socket.io-client';
-
 import {onJoin, onPair, disconnect, syncConst} from '../baseScript.ts';
 
 let socket: Socket;
@@ -106,10 +105,10 @@ connect.on('click', () => {
 			socket.on('playSound', async (id: number) => {
 				const string_data = exp_data.find((d: {id: number}) => d.id === id)?.string_data;
 				if(string_data === undefined) return;
-				let m: mfsk = new mfsk(SAMPLING_RATE(), SIGNAL_FREQS(), PREAMBLE(), BITS_PER_SIGNAL(), SIGNAL_MS(), SAMPLES_COUNT()); // constが書き換えられる可能性のために毎回生成
+				let m: mfsk = new mfsk(getAll()); // constが書き換えられる可能性のために毎回生成
 				let bits: Uint8Array = str2bits(string_data);
 				let waves: Float32Array = m.generateWave(bits);
-				await playSound(waves, m.SAMPLING_RATE);
+				await playSound(waves, m.constValues.SAMPLING_RATE);
 			});
 			socket.on('stopSound', () => {
 				console.log('stopping Sound...');

@@ -3,11 +3,8 @@ import $ from 'jquery';
 import { mfsk } from "../libs/TextWaver/modules/mfsk.ts";
 
 import {
-	BITS_PER_SIGNAL,
 	PREAMBLE,
-	SAMPLES_COUNT,
 	SAMPLING_RATE,
-	SIGNAL_FREQS,
 	SIGNAL_MS,
 	getAll
 } from "../const.ts";
@@ -71,14 +68,7 @@ async function toggleSound() {
 
 		await audioCtx.audioWorklet.addModule(processorUrl);
 		audioProcessorNode = new AudioWorkletNode(audioCtx, 'audio-processor', {
-			processorOptions: {
-				"SAMPLES_COUNT": SAMPLES_COUNT(),
-				"PREAMBLE": PREAMBLE(),
-				"SAMPLE_RATE": SAMPLING_RATE(),
-				"SIGNAL_FREQS": SIGNAL_FREQS(),
-				"BITS_PER_SIGNAL": BITS_PER_SIGNAL(),
-				"SIGNAL_MS": SIGNAL_MS()
-			}
+			processorOptions: getAll()
 		});
 
 		audioProcessorNode.port.onmessage = (e: MessageEvent): void => {

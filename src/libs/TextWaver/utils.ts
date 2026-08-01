@@ -42,3 +42,17 @@ export function str2bits(str: string): Uint8Array{
 export function decodeUTF8(buffer: Uint8Array): string {
 	return (new TextDecoder('utf-8')).decode(buffer); // 'utf-8'は冗長
 }
+
+export interface ConstValues {
+	CHANNELS: number;
+	BITS_PER_SIGNAL: number;
+	BPS: number;
+	SAMPLING_RATE: number;
+	SIGNAL_FREQ_START: number;
+	SIGNAL_FREQ_WIDTH: number;
+	PREAMBLE: number[];
+	SIGNAL_FREQS: Uint16Array;
+	SIGNAL_MS: number;
+	SAMPLES_COUNT: number;
+	useFFT: boolean;
+}

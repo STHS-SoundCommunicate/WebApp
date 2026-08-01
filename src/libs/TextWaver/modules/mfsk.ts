@@ -3,13 +3,13 @@
 // const TITLE: string = "MFSK";
 
 import { modulator } from './modulator.ts';
-import { concat, crc, isEqual } from "../utils.ts";
+import { concat, crc, isEqual, ConstValues } from "../utils.ts";
 import StackBuffer from "../StackBuffer.ts";
 
-interface Complex {
-	re: number;
-	im: number;
-}
+// interface Complex {
+// 	re: number;
+// 	im: number;
+// }
 
 import FFT from 'fft.js';
 
@@ -25,28 +25,22 @@ export class mfsk extends modulator {
 	private readonly window_2: Uint8Array;
 
 	constructor(
-		SAMPLING_RATE: number,
-
-		private readonly SIGNAL_FREQS: Uint16Array,
-		private readonly PREAMBLE: number[],
-		private readonly BITS_PER_SIGNAL: number,
-		private readonly SIGNAL_MS: number,
-		private readonly SAMPLE_COUNT: number,
+		constValues: ConstValues,
 	) {
-		super(SAMPLING_RATE);
+		super(constValues);
 
-		this.HALF_SAMPLE_COUNT = Math.floor(this.SAMPLE_COUNT / 2);
+		this.HALF_SAMPLE_COUNT = Math.floor(this.constValues.SAMPLES_COUNT / 2);
 
-		this.symbols = new Uint8Array(this.PREAMBLE.length * 2); // 疑似リングバッファ
+		this.symbols = new Uint8Array(this.constValues.PREAMBLE.length * 2); // 疑似リングバッファ
 		this.recents = new Float32Array(this.HALF_SAMPLE_COUNT * 9);
 
-		this.window_1 = new Uint8Array(this.PREAMBLE.length);
-		this.window_2 = new Uint8Array(this.PREAMBLE.length);
+		this.window_1 = new Uint8Array(this.constValues.PREAMBLE.length);
+		this.window_2 = new Uint8Array(this.constValues.PREAMBLE.length);
 	}
 
 	private goertzel(samples: Float32Array, freq: number): number {
 		const N: number = samples.length;
-		const k: number = Math.round((N * freq) / this.SAMPLING_RATE);
+		const k: number = Math.round((N * freq) / this.constValues.SAMPLING_RATE);
 		const omega: number = (2 * Math.PI * k) / N;
 		const coeff: number = 2 * Math.cos(omega);
 		let s_prev: number = 0;
@@ -204,32 +198,49 @@ export class mfsk extends modulator {
 	// 	return fftin(sample, T, N);
 	// }
 
-	private s(fft: any[], freq: number): number {
+	private scoreOnFFT(fft: any[], freq: number): number {
 		const N: number = fft.length / 2; // fft.length must be 2N
-		const bin: number = Math.round((freq * N) / this.SAMPLING_RATE);
+		const bin: number = Math.round((freq * N) / this.constValues.SAMPLING_RATE);
 		if (bin < 0 || bin >= N / 2) return 0;
 		const real: number = fft[bin*2];
 		const imag: number = fft[bin*2 + 1];
 		return (real * real) + (imag * imag);
 	}
 
-	private score(spectrum: Complex[], freq: number): number {
-		const N: number = spectrum.length;
-		const bin: number = Math.round((freq * N) / this.SAMPLING_RATE);
-		if (bin < 0 || bin >= N / 2) return 0;
-		const real: number = spectrum[bin].re;
-		const imag: number = spectrum[bin].im;
-		console.log((real * real) + (imag * imag));
-		return (real * real) + (imag * imag);
-	}
+	// private score(spectrum: Complex[], freq: number): number {
+	// 	const N: number = spectrum.length;
+	// 	const bin: number = Math.round((freq * N) / this.SAMPLING_RATE);
+	// 	if (bin < 0 || bin >= N / 2) return 0;
+	// 	const real: number = spectrum[bin].re;
+	// 	const imag: number = spectrum[bin].im;
+	// 	console.log((real * real) + (imag * imag));
+	// 	return (real * real) + (imag * imag);
+	// }
 
 	public detectSymbol(samples: Float32Array): number {
+		if(this.constValues.useFFT) return this.detectSymbolOnFFT(samples);
+		else return this.detectSymbolOnGoertzel(samples);
+	}
+
+	public detectSymbolOnGoertzel(samples: Float32Array): number {
 		let max_freq: number = -1; // はたしてやっていい初期化なのだろうか
 		let max_db: number = -Infinity;
-		// let fft: Complex[] = this.fft(samples);
-		this.SIGNAL_FREQS.forEach((f: number, i: number): void => {
+		this.constValues.SIGNAL_FREQS.forEach((f: number, i: number): void => {
 			let score: number = this.goertzel(samples, f);
-			// let score: number = this.score(fft, f);
+			if(score > max_db) {
+				max_db = score;
+				max_freq = i; // 何個目のチャンネルか
+			}
+		});
+		return max_freq; // return index, not [Hz]
+	}
+
+	public detectSymbolOnFFT(samples: Float32Array): number {
+		let max_freq: number = -1; // はたしてやっていい初期化なのだろうか
+		let max_db: number = -Infinity;
+		let fft = this.fft(samples);
+		this.constValues.SIGNAL_FREQS.forEach((f: number, i: number): void => {
+			let score: number = this.scoreOnFFT(fft, f);
 			if(score > max_db) {
 				max_db = score;
 				max_freq = i; // 何個目のチャンネルか
@@ -248,7 +259,7 @@ export class mfsk extends modulator {
 	private symbol2bits(symbols: number[]): Uint8Array {
 		let bits: number[] = [];
 		symbols.forEach((s: number): void => {
-			for(let i: number = this.BITS_PER_SIGNAL - 1; i >= 0; --i)
+			for(let i: number = this.constValues.BITS_PER_SIGNAL - 1; i >= 0; --i)
 				bits.push((s >> i) & 1);
 		});
 		let bytes: number[] = [];
@@ -268,16 +279,16 @@ export class mfsk extends modulator {
 
 		// log(`[preamble] ${symbol}, [${this.symbols.join(', ')}][${this.symbols_index}]`);
 
-		for(let i: number = 0; i < this.PREAMBLE.length; ++i) {
+		for(let i: number = 0; i < this.constValues.PREAMBLE.length; ++i) {
 			let p: number = this.symbols_index - 1 - (2*i) + this.symbols.length;
-			this.window_1[this.PREAMBLE.length - i - 1] = this.symbols[p % this.symbols.length]; // 偶数列
-			this.window_2[this.PREAMBLE.length - i - 1] = this.symbols[(p-1) % this.symbols.length]; // 奇数列
+			this.window_1[this.constValues.PREAMBLE.length - i - 1] = this.symbols[p % this.symbols.length]; // 偶数列
+			this.window_2[this.constValues.PREAMBLE.length - i - 1] = this.symbols[(p-1) % this.symbols.length]; // 奇数列
 		}
 
 		let phase_offset: number;
-		if(isEqual(this.PREAMBLE, this.window_1)) {
+		if(isEqual(this.constValues.PREAMBLE, this.window_1)) {
 			phase_offset = this.HALF_SAMPLE_COUNT;
-		} else if(isEqual(this.PREAMBLE, this.window_2)) {
+		} else if(isEqual(this.constValues.PREAMBLE, this.window_2)) {
 			phase_offset = 0;
 		} else {
 			return [false, -1];
@@ -286,7 +297,7 @@ export class mfsk extends modulator {
 		let temp_max: number = 0;
 		let start_preamble: number = phase_offset;
 		for(let i: number = start_preamble; i < phase_offset + this.HALF_SAMPLE_COUNT; ++i) {
-			let score: number = this.goertzel(this.recents.slice(i, i + this.HALF_SAMPLE_COUNT), this.SIGNAL_FREQS[0]); // TODO: 計算効率の向上はできないか？
+			let score: number = this.goertzel(this.recents.slice(i, i + this.HALF_SAMPLE_COUNT), this.constValues.SIGNAL_FREQS[0]); // TODO: 計算効率の向上はできないか？
 			if(score > temp_max) {
 				temp_max = score;
 				start_preamble = i;
@@ -316,23 +327,23 @@ export class mfsk extends modulator {
 
 				log([mfsk.PREAMBLE_DETECTED]);
 
-				let header_index: number = isPreamble[1] + (this.SAMPLE_COUNT * this.PREAMBLE.length);
+				let header_index: number = isPreamble[1] + (this.constValues.SAMPLES_COUNT * this.constValues.PREAMBLE.length);
 				let buf_size: number = this.recents.length;
 				let buf: Float32Array = this.recents.slice(Math.min(header_index, buf_size));
 				let overshoot: number = Math.max(0, header_index - buf_size);
-				let stream_chunk: Float32Array = yield* stackBuffer.waitSamples(overshoot + 6 * this.SAMPLE_COUNT - buf.length);
+				let stream_chunk: Float32Array = yield* stackBuffer.waitSamples(overshoot + 6 * this.constValues.SAMPLES_COUNT - buf.length);
 				let header: StackBuffer = new StackBuffer(concat(buf, stream_chunk).slice(overshoot));
 
-				let pl_hi: number = this.detectSymbol(header.readSamples(this.SAMPLE_COUNT)),
-					pl_lo: number = this.detectSymbol(header.readSamples(this.SAMPLE_COUNT));
+				let pl_hi: number = this.detectSymbol(header.readSamples(this.constValues.SAMPLES_COUNT)),
+					pl_lo: number = this.detectSymbol(header.readSamples(this.constValues.SAMPLES_COUNT));
 				let payload_length: number = (pl_hi << 4) | pl_lo; // 16channelだから4シフトしてる？
 
-				let mi_hi: number = this.detectSymbol(header.readSamples(this.SAMPLE_COUNT)),
-					mi_lo: number = this.detectSymbol(header.readSamples(this.SAMPLE_COUNT));
+				let mi_hi: number = this.detectSymbol(header.readSamples(this.constValues.SAMPLES_COUNT)),
+					mi_lo: number = this.detectSymbol(header.readSamples(this.constValues.SAMPLES_COUNT));
 				let message_id: number = (mi_hi << 4) | mi_lo;
 
-				let c8_hi: number = this.detectSymbol(header.readSamples(this.SAMPLE_COUNT)),
-					c8_lo: number = this.detectSymbol(header.readSamples(this.SAMPLE_COUNT));
+				let c8_hi: number = this.detectSymbol(header.readSamples(this.constValues.SAMPLES_COUNT)),
+					c8_lo: number = this.detectSymbol(header.readSamples(this.constValues.SAMPLES_COUNT));
 				let crc_raw: number = (c8_hi << 4) | c8_lo;
 
 				this.crc_data[0] = pl_hi;
@@ -344,12 +355,12 @@ export class mfsk extends modulator {
 
 					log([mfsk.HEADER_CRC_CHECK_PASSED]);
 
-					let payloads: StackBuffer = new StackBuffer(yield* stackBuffer.waitSamples(this.SAMPLE_COUNT * payload_length));
+					let payloads: StackBuffer = new StackBuffer(yield* stackBuffer.waitSamples(this.constValues.SAMPLES_COUNT * payload_length));
 					let payloads_wave: Float32Array = payloads.clone().readSamples();
 					let payload_symbols: number[] = [];
 					for(let _: number = 0; _ < payload_length; ++_)
-						payload_symbols.push(this.detectSymbol(payloads.readSamples(this.SAMPLE_COUNT)));
-					log(`[${this.PREAMBLE.join(', ')}, ${this.crc_data.join(', ')}, ${c8_hi}, ${c8_lo}, ${payload_symbols.join(', ')}]`);
+						payload_symbols.push(this.detectSymbol(payloads.readSamples(this.constValues.SAMPLES_COUNT)));
+					log(`[${this.constValues.PREAMBLE.join(', ')}, ${this.crc_data.join(', ')}, ${c8_hi}, ${c8_lo}, ${payload_symbols.join(', ')}]`);
 					let payload_bits: Uint8Array = this.symbol2bits(payload_symbols);
 
 					log([mfsk.PAYLOAD_DETECTED, payload_bits, payloads_wave]); // postMessage
@@ -370,16 +381,16 @@ export class mfsk extends modulator {
 		const index: Uint8Array = this.bits2index(bits);
 		const header: Uint8Array = this.generateHeader(index);
 
-		const n_signals: number = Math.floor(this.SAMPLING_RATE * this.SIGNAL_MS / 1000);
-		const duration: number = n_signals / this.SAMPLING_RATE;
+		const n_signals: number = Math.floor(this.constValues.SAMPLING_RATE * this.constValues.SIGNAL_MS / 1000);
+		const duration: number = n_signals / this.constValues.SAMPLING_RATE;
 
 		let waves: Float32Array = new Float32Array((header.length + index.length) * n_signals);
 		let key: number = 0;
 		let phase: number = 0;
 		const sinWaver = (value: number): void => {
-			const freq: number = this.SIGNAL_FREQS[value];
+			const freq: number = this.constValues.SIGNAL_FREQS[value];
 			for(let i: number = 0; i < n_signals; ++i)
-				waves[key++] = (Math.sin((2 * Math.PI * freq * (i / this.SAMPLING_RATE)) + phase));
+				waves[key++] = (Math.sin((2 * Math.PI * freq * (i / this.constValues.SAMPLING_RATE)) + phase));
 			phase = (phase + (2 * Math.PI * duration * freq)) % (2 * Math.PI);
 		};
 
@@ -400,15 +411,15 @@ export class mfsk extends modulator {
 		const c: number = crc(new Uint8Array(header_info_symbols));
 		console.log(`info_data : ${header_info_symbols}, crc : ${c}`);
 		const cyc_symbols: number[] = [c >> 4, c & 0xF];
-		return new Uint8Array(this.PREAMBLE.concat(header_info_symbols).concat(cyc_symbols));
+		return new Uint8Array(this.constValues.PREAMBLE.concat(header_info_symbols).concat(cyc_symbols));
 	}
 
 	private bits2index(bits: Uint8Array): Uint8Array { // mfskでは4bitを1indexとして管理するため、4bitごとに管理
-		let result: Uint8Array = new Uint8Array(Math.floor(bits.length / this.BITS_PER_SIGNAL));
+		let result: Uint8Array = new Uint8Array(Math.floor(bits.length / this.constValues.BITS_PER_SIGNAL));
 		let key: number = 0;
-		for(let i: number = 0; i < bits.length; i += this.BITS_PER_SIGNAL) {
+		for(let i: number = 0; i < bits.length; i += this.constValues.BITS_PER_SIGNAL) {
 			let index: number = 0;
-			for(let j: number = 0; j < this.BITS_PER_SIGNAL; ++j)
+			for(let j: number = 0; j < this.constValues.BITS_PER_SIGNAL; ++j)
 				index = (index << 1) | bits[i + j];
 			result[key++] = index;
 		}

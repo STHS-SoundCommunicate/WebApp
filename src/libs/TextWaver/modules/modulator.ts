@@ -1,6 +1,7 @@
 // https://qiita.com/hiro-hiro/items/9879a297cf5b30c474e2
 
 import StackBuffer from "../StackBuffer.ts";
+import { ConstValues } from "../utils.ts";
 
 export abstract class modulator {
 
@@ -10,7 +11,7 @@ export abstract class modulator {
 	public static readonly PAYLOAD_DETECTED: 3 = 3;
 
 	protected constructor(
-		public readonly SAMPLING_RATE: number
+		public readonly constValues: ConstValues
 	) {}
 
 	public abstract detectSymbol(samples: Float32Array): number;

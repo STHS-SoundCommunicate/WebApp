@@ -4,19 +4,27 @@ import $ from "jquery";
 const keys: JQuery = $(".keys");
 const values: JQuery = $(".values");
 
-Object.entries(_const).forEach(([key, value]: [string, number | number[]]): void => {
+Object.entries(_const).forEach(([key, value]: [string, number | number[] | boolean]): void => {
 	keys.append($("<span>").text(`${key}:`));
 	let val: string;
 	const input: JQuery = $("<input>").attr('id', `const_${key}`).addClass('const_params');
 	if(value instanceof Array){
 		val = value.join(', ');
-		input.attr('type', 'text');
+		input.attr('type', 'text')
+			 .val(val);
+	} else if(typeof value === 'boolean') {
+		input.attr('type', 'checkbox');
+		input.prop('checked', value);
 	} else {
 		val = String(value);
-		input.attr('type', 'number');
+		input.attr('type', 'number')
+			 .val(val);
 	}
-	input.val(val);
 	values.append(input);
+
+	// const methodName = key.toUpperCase();
+	// this[methodName] = () => { return $(`#const_channels`).val(); };
+
 });
 
 export function CHANNELS(): number { return Number($(`#const_channels`).val()); }
@@ -46,14 +54,21 @@ export function SAMPLES_COUNT(): number {
 	return Math.floor(SAMPLING_RATE() / BAUD_RATE());
 }
 
-export function getAll(): { [key: string]: string | number | number[] } {
+export function useFFT(): boolean { return $('#const_useFFT').prop('checked'); }
+
+import { ConstValues } from "./libs/TextWaver/utils.ts";
+export function getAll(): ConstValues {
 	return {
-			"channels": CHANNELS(),
-			"bits_per_signal": BITS_PER_SIGNAL(),
-			"bps": BPS(),
-			"sampling_rate": SAMPLING_RATE(),
-			"signal_freq_start": SIGNAL_FREQ_START(),
-			"signal_freq_width": SIGNAL_FREQ_WIDTH(),
-			"preamble": PREAMBLE()
+			"CHANNELS": CHANNELS(),
+			"BITS_PER_SIGNAL": BITS_PER_SIGNAL(),
+			"BPS": BPS(),
+			"SAMPLING_RATE": SAMPLING_RATE(),
+			"SIGNAL_FREQ_START": SIGNAL_FREQ_START(),
+			"SIGNAL_FREQ_WIDTH": SIGNAL_FREQ_WIDTH(),
+			"PREAMBLE": PREAMBLE(),
+			"SIGNAL_FREQS": SIGNAL_FREQS(),
+			"SIGNAL_MS": SIGNAL_MS(),
+			"SAMPLES_COUNT": SAMPLES_COUNT(),
+			"useFFT": useFFT()
 		};
 }
