@@ -11,6 +11,7 @@ export default {
                 main: 'index.html',
                 receiver: 'receiver.html',
                 player: 'player.html',
+                analyser: 'analyser.html',
             },
         },
     }

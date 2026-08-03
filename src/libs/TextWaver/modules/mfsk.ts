@@ -265,13 +265,16 @@ export class mfsk extends modulator {
 			for(let i: number = this.constValues.BITS_PER_SIGNAL - 1; i >= 0; --i)
 				bits.push((s >> i) & 1);
 		});
-		let bytes: number[] = [];
+		// let bytes: number[] = [];
+		const bytes: Uint8Array = new Uint8Array(bits.length / 8); // ほんとに要素数あってる？
 		for(let i: number = 0; i < bits.length - 7; i += 8) {
 			let b: number = 0;
 			bits.slice(i, i + 8).forEach((bit: number): void => { b = (b << 1) | bit; });
-			bytes.push(b);
+			// bytes.push(b);
+			bytes[Math.floor(i / 8)] = b;
 		}
-		return (new Uint8Array(bytes));
+		// return (new Uint8Array(bytes));
+		return bytes;
 	}
 
 	private readPreamble(samples: Float32Array): [boolean, number] {
@@ -370,7 +373,7 @@ export class mfsk extends modulator {
 					if(this.constValues.useRS) {
 						const decoded: boolean = decode(payload_symbols, this.constValues.RS_ErrorLength);
 						if(!decoded) {
-							log([mfsk.RS_DECODE_FAILED]);
+							log([mfsk.RS_DECODE_FAILED]); // 誤り数が多すぎるとき？
 							continue;
 						}
 						payload_symbols = payload_symbols.slice(0, -this.constValues.RS_ErrorLength);
@@ -398,7 +401,7 @@ export class mfsk extends modulator {
 
 
 		if(this.constValues.useRS){
-			let temp: Uint8Array = new Uint8Array(index.length + this.constValues.RS_ErrorLength);
+			let temp: Uint8Array = new Uint8Array(index.length + this.constValues.RS_ErrorLength); // 訂正符号を含めれる大きさに拡大
 			temp.set(index);
 			encode(temp, this.constValues.RS_ErrorLength);
 			index = temp;
