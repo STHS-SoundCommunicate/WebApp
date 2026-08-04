@@ -39,6 +39,23 @@ export function str2bits(str: string): Uint8Array{
 	return result;
 }
 
+//RS_codecがByte単位で呼び出すため別の関数に切り分け
+
+export function str2bytes(str: string): Uint8Array {
+	const encodedData: Uint8Array = encodeUTF8(str); // 1Byte区切りのデータ
+	return encodedData;
+}
+
+export function bytes2bits(bytes: Uint8Array): Uint8Array {
+	let result: Uint8Array = new Uint8Array(bytes.length * 8); // 8bit = 1byte
+	let key: number = 0;
+	bytes.forEach((byte: number): void => {
+		for(let i: number = 0; i < 8; ++i)
+			result[key++] = ((byte >> (7 - i)) & 1);
+	});
+	return result;
+}
+
 export function decodeUTF8(buffer: Uint8Array): string {
 	return (new TextDecoder('utf-8')).decode(buffer); // 'utf-8'は冗長
 }
