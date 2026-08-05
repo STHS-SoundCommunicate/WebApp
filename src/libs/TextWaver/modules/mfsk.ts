@@ -3,7 +3,7 @@
 // const TITLE: string = "MFSK";
 
 import { modulator } from './modulator.ts';
-import { concat, crc, isEqual, ConstValues } from "../utils.ts";
+import { concat, crc, isEqual, ConstValues, bytes2bits } from "../utils.ts";
 import StackBuffer from "../StackBuffer.ts";
 
 // interface Complex {
@@ -15,6 +15,7 @@ import FFT from 'fft.js';
 
 // @ts-ignore
 import { encode, decode } from '../RSCode.js'; // TODO: tsで書き直す
+import { generate_rs_parity, rs_decode } from '../../rs_codec.ts';
 
 export class mfsk extends modulator {
 
@@ -259,7 +260,7 @@ export class mfsk extends modulator {
 		this.symbols_index = (this.symbols_index + 1) % this.symbols.length;
 	}
 
-	private symbol2bits(symbols: Uint8Array): Uint8Array {
+	private symbol2bytes(symbols: Uint8Array): Uint8Array {
 		let bits: number[] = [];
 		symbols.forEach((s: number): void => {
 			for(let i: number = this.constValues.BITS_PER_SIGNAL - 1; i >= 0; --i)
@@ -369,19 +370,14 @@ export class mfsk extends modulator {
 
 					log(`[${this.constValues.PREAMBLE.join(', ')}, ${this.crc_data.join(', ')}, ${c8_hi}, ${c8_lo}, ${payload_symbols.join(', ')}]`);
 
-
-					if(this.constValues.useRS) {
-						const decoded: boolean = decode(payload_symbols, this.constValues.RS_ErrorLength);
-						if(!decoded) {
-							log([mfsk.RS_DECODE_FAILED]); // 誤り数が多すぎるとき？
-							continue;
-						}
-						payload_symbols = payload_symbols.slice(0, -this.constValues.RS_ErrorLength);
+					let payload_bytes: Uint8Array = this.symbol2bytes(payload_symbols);
+					const corrected: Uint8Array | null = this.removeRSparity(payload_bytes);
+					if(corrected === null) {
+						log([mfsk.RS_DECODE_FAILED]);
+						continue;
 					}
-
-
-					let payload_bits: Uint8Array = this.symbol2bits(payload_symbols);
-					log([mfsk.PAYLOAD_DETECTED, payload_bits, payloads_wave]);
+					payload_bytes = corrected;
+					log([mfsk.PAYLOAD_DETECTED, payload_bytes, payloads_wave]);
 
 				} else {
 					log([mfsk.HEADER_CRC_CHECK_FAILED]);
@@ -391,22 +387,38 @@ export class mfsk extends modulator {
 		}
 	}
 
+	public addRSparity(bytes: Uint8Array): Uint8Array {
+		if(!this.constValues.useRS) return bytes;
+		const parity = generate_rs_parity(bytes, this.constValues.RS_ErrorLength);
+		const result: Uint8Array = new Uint8Array(bytes.length + parity.length);
+		result.set(bytes);
+		result.set(parity, bytes.length);
+		return result;
+	}
 
+	public removeRSparity(bytes: Uint8Array): Uint8Array | null{
+		if(!this.constValues.useRS) return bytes;
+		try {
+			return rs_decode(bytes, this.constValues.RS_ErrorLength);
+		} catch {
+			return null; //誤り数がデカすぎる
+		}
+	}
 
+	public generateWave(bytes: Uint8Array): Float32Array { // bytes: 生のデータ
 
+		const rs_bytes: Uint8Array = this.addRSparity(bytes);
+		const bits: Uint8Array = bytes2bits(rs_bytes);
+		const index: Uint8Array = this.bits2index(bits);
 
-	public generateWave(bits: Uint8Array): Float32Array { // bits: 符号化されたデータ
-
-		let index: Uint8Array = this.bits2index(bits);
-
-
+		/*
 		if(this.constValues.useRS){
 			let temp: Uint8Array = new Uint8Array(index.length + this.constValues.RS_ErrorLength); // 訂正符号を含めれる大きさに拡大
 			temp.set(index);
 			encode(temp, this.constValues.RS_ErrorLength);
 			index = temp;
 		}
-
+		*/
 
 		const header: Uint8Array = this.generateHeader(index);
 
