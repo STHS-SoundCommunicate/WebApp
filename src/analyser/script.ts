@@ -16,8 +16,8 @@ canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
 function visualize(): void { // https://developer.mozilla.org/ja/docs/Web/API/Web_Audio_API/Visualizations_with_Web_Audio_API
 
 	requestAnimationFrame(visualize);
-	// analyser.getByteTimeDomainData(dataArray); // 時間領域(db-t図)
-	analyser.getByteFrequencyData(dataArray); // 周波数領域(db-f図)
+	analyser.getByteTimeDomainData(dataArray); // 時間領域(db-t図)
+	// analyser.getByteFrequencyData(dataArray); // 周波数領域(db-f図)
 	canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);
 	canvasCtx.fillStyle = "rgb(200, 200, 200)";
 	canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
