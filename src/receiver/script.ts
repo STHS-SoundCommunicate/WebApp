@@ -342,8 +342,7 @@ connect.on('click', () => {
 		log('Successfully paired with the player.');
 
 		syncConst(socket);
-
-		socket.emit('syncConst', getAll());
+		socket.emit('syncConst', getAll()); // 受信側のを採用する
 
 		onJoin(room);
 

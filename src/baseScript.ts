@@ -38,6 +38,7 @@ export function syncConst(socket: Socket) {
 
     $('.const_params').on('change', () => {
         socket.emit('syncConst', getAll());
-    });
-
+    }).on('click', () => {
+		socket.emit('syncConst', getAll());
+	});
 }
