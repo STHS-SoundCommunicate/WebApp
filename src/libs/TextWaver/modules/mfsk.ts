@@ -387,7 +387,7 @@ export class mfsk extends modulator {
 		}
 	}
 
-	public addRSparity(bytes: Uint8Array): Uint8Array {
+	private addRSparity(bytes: Uint8Array): Uint8Array {
 		if(!this.constValues.useRS) return bytes;
 		const parity = generate_rs_parity(bytes, this.constValues.RS_ErrorLength);
 		const result: Uint8Array = new Uint8Array(bytes.length + parity.length);
@@ -396,7 +396,7 @@ export class mfsk extends modulator {
 		return result;
 	}
 
-	public removeRSparity(bytes: Uint8Array): Uint8Array | null{
+	private removeRSparity(bytes: Uint8Array): Uint8Array | null{
 		if(!this.constValues.useRS) return bytes;
 		try {
 			return rs_decode(bytes, this.constValues.RS_ErrorLength);
