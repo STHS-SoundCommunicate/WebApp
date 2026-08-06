@@ -283,7 +283,7 @@ function correct_rs_errors(
 	return corrected;
 }
 
-export function rs_decode(received: Uint8Array, parity_symbols: number = 16): Uint8Array {
+export function rs_decode(received: Uint8Array, parity_symbols: number): Uint8Array {
 	const corrected: number[] = correct_rs_errors(Array.from(received), parity_symbols);
 	return Uint8Array.from(corrected.slice(0, corrected.length - parity_symbols));
 }
