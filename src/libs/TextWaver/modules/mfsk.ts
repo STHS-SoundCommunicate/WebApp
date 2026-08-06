@@ -371,12 +371,14 @@ export class mfsk extends modulator {
 					log(`[${this.constValues.PREAMBLE.join(', ')}, ${this.crc_data.join(', ')}, ${c8_hi}, ${c8_lo}, ${payload_symbols.join(', ')}]`);
 
 					let payload_bytes: Uint8Array = this.symbol2bytes(payload_symbols);
-					const corrected: Uint8Array | null = this.removeRSparity(payload_bytes);
-					if(corrected === null) {
-						log([mfsk.RS_DECODE_FAILED]);
-						continue;
+					if(this.constValues.useRS) {
+						const corrected: Uint8Array | null = this.removeRSparity(payload_bytes);
+						if(corrected === null) {
+							log([mfsk.RS_DECODE_FAILED]);
+							continue;
+						}
+						payload_bytes = corrected;
 					}
-					payload_bytes = corrected;
 					log([mfsk.PAYLOAD_DETECTED, payload_bytes, payloads_wave]);
 
 				} else {
@@ -388,7 +390,6 @@ export class mfsk extends modulator {
 	}
 
 	private addRSparity(bytes: Uint8Array): Uint8Array {
-		if(!this.constValues.useRS) return bytes;
 		const parity = generate_rs_parity(bytes, this.constValues.RS_ErrorLength);
 		const result: Uint8Array = new Uint8Array(bytes.length + parity.length);
 		result.set(bytes);
@@ -397,7 +398,6 @@ export class mfsk extends modulator {
 	}
 
 	private removeRSparity(bytes: Uint8Array): Uint8Array | null{
-		if(!this.constValues.useRS) return bytes;
 		try {
 			return rs_decode(bytes, this.constValues.RS_ErrorLength);
 		} catch {
@@ -406,8 +406,7 @@ export class mfsk extends modulator {
 	}
 
 	public generateWave(bytes: Uint8Array): Float32Array { // bytes: 生のデータ
-
-		const rs_bytes: Uint8Array = this.addRSparity(bytes);
+		const rs_bytes: Uint8Array = this.constValues.useRS ? this.addRSparity(bytes) : bytes;
 		const bits: Uint8Array = bytes2bits(rs_bytes);
 		const index: Uint8Array = this.bits2index(bits);
 
