@@ -9,7 +9,8 @@ let lastSampleRate: number = SAMPLING_RATE();
 
 async function unlockAudio(): Promise<void> {
 	if(audioCtx === undefined || lastSampleRate !== SAMPLING_RATE()) {
-		audioCtx = new AudioContext({
+		// @ts-ignore
+		audioCtx = new (window.AudioContext || window.webkitAudioContext)({
 			sampleRate: SAMPLING_RATE(),
 			latencyHint: 'playback'
 		});
@@ -50,11 +51,10 @@ $("#genButton").on('click', async () => {
 
 
 import { io, Socket } from 'socket.io-client';
-import { onJoin, onPair, disconnect, syncConst } from '../baseScript.ts';
+import {onJoin, onPair, disconnect, syncConst, listIds} from '../baseScript.ts';
 
 let socket: Socket;
 
-const ul = $('.data_list');
 const connect = $('#connectButton');
 
 let exp_data: {id: number, string_data: string}[] = [];
@@ -71,12 +71,8 @@ connect.on('click', () => {
 		onJoin(room);
 		$('#waiting').text('Waiting for receiver...');
 
-		$('#disconnectButton').on('click', () => {
-			disconnect(socket);
-		});
-		socket.on('delRoom', (): void => {
-			disconnect(socket);
-		});
+		$('#disconnectButton').on('click', () => { disconnect(socket); });
+		socket.on('delRoom', (): void => { disconnect(socket); });
 
 		socket.on('paired', (): void => {
 
@@ -88,13 +84,7 @@ connect.on('click', () => {
 
 			socket.on('setFile', (text: string) => {
 				exp_data = JSON.parse(text);
-				ul.empty();
-				for(let data of exp_data) {
-					let li = $('<button>').text(data.id).attr('id', `exp_data_${data.id}`).addClass('data').on('click', () => {
-						socket.emit('selectId', data.id);
-					});
-					ul.append(li);
-				}
+				listIds(exp_data, socket);
 				socket.on('selectId', async (id: number) => {
 					let li = $(`#exp_data_${id}`);
 					li.css('background-color', 'white').siblings().css('background-color', 'lightgray');

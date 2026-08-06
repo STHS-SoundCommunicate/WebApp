@@ -25,7 +25,6 @@ function log(s: string): void {
 function clearLog(): void { result.text(''); }
 
 
-
 // https://developer.mozilla.org/ja/docs/Web/API/AudioContext
 let audioCtx: AudioContext;
 let analyser: AnalyserNode;
@@ -60,7 +59,8 @@ async function toggleSound() {
 
 		clearLog();
 
-		audioCtx = new AudioContext({ sampleRate: SAMPLING_RATE() });
+		// @ts-ignore TODO: いいのだろうか
+		audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLING_RATE() });
 		analyser = audioCtx.createAnalyser();
 		bufferLength = analyser.frequencyBinCount;
 		dataArray = new Uint8Array(bufferLength);
@@ -101,8 +101,6 @@ async function toggleSound() {
 					let str: string = decodeUTF8(e.data[1]);
 					log(str);
 
-
-
 					let sum: number = 0;
 					e.data[2].forEach((value: number) => {
 						sum += value * value;
@@ -122,8 +120,6 @@ async function toggleSound() {
 							return;
 						}
 					}
-
-
 
 					toggleSound();
 					stats.text("受信しました: " + str);
@@ -189,6 +185,9 @@ function visualize(): void { // https://developer.mozilla.org/ja/docs/Web/API/We
 	canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);
 	canvasCtx.fillStyle = "rgb(200, 200, 200)";
 	canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
+
+	drawFrequencyScale();
+
 	canvasCtx.lineWidth = 2;
 	canvasCtx.strokeStyle = "rgb(0, 0, 0)";
 	canvasCtx.beginPath();
@@ -205,7 +204,30 @@ function visualize(): void { // https://developer.mozilla.org/ja/docs/Web/API/We
 	canvasCtx.stroke();
 }
 
+function drawFrequencyScale(): void {
+	const nyquist: number = audioCtx.sampleRate / 2;
+	const markerStepHz: number = 1000;
+	const majorMarkerStepHz: number = 10000;
 
+	canvasCtx.save();
+	canvasCtx.fillStyle = "rgb(60, 60, 60)";
+
+	for(let hz: number = 0; hz <= nyquist; hz += markerStepHz) {
+		const x: number = hz / nyquist * WIDTH;
+		const isMajorMarker: boolean = hz % majorMarkerStepHz === 0;
+
+		canvasCtx.strokeStyle = isMajorMarker
+			? "rgba(40, 40, 40, 0.7)"
+			: "rgba(80, 80, 80, 0.3)";
+		canvasCtx.lineWidth = isMajorMarker ? 2 : 1;
+
+		canvasCtx.beginPath();
+		canvasCtx.moveTo(x, 0);
+		canvasCtx.lineTo(x, HEIGHT);
+		canvasCtx.stroke();
+	}
+	canvasCtx.restore();
+}
 
 const tryStats = $('#try');
 let exp_counting: number = 1;
@@ -240,14 +262,13 @@ function exp(payload: string, db: number, wave_data: Float32Array): void {
 	});
 
 	log(`Result: ${result} \n Correct: ${correct}, Wrong: ${wrong} Tries: ${exp_counting}`);
-	const exp_result = {id: exp_id, detect: payload, correct: correct, wrong: wrong, db: db, try: exp_counting, pattern: wrong_pattern, wave: Array.from(wave_data)}; // wave: Array.from(wave_data)
+	const exp_result = {id: exp_id, detect: payload, correct: correct, wrong: wrong, db: db, try: exp_counting, pattern: wrong_pattern, wave: Array.from(wave_data)};
 
 	socket.emit('expResult', exp_result, $('#fileNameInput').val() + '.json');
-
 }
 
 import { io, Socket } from 'socket.io-client';
-import { onJoin, onPair, disconnect as D, syncConst } from "../baseScript.ts";
+import {onJoin, onPair, disconnect as D, syncConst, listIds} from "../baseScript.ts";
 let socket: Socket;
 const connect = $('#connectButton');
 const ul = $('.data_list');
@@ -366,12 +387,7 @@ connect.on('click', () => {
 				$(`#exp_data_${exp_id}`).trigger('click');
 			});
 			ul.append(li);
-			for(let data of exp_data) {
-				let li = $('<button>').text(data.id).attr('id', `exp_data_${data.id}`).addClass('data').on('click', async () => {
-					socket.emit('selectId', data.id);
-				});
-				ul.append(li);
-			}
+			listIds(exp_data, socket);
 			socket.on('selectId', async (id: number) => {
 				let li = $(`#exp_data_${id}`);
 				li.css('background-color', 'white').siblings().css('background-color', 'lightgray');

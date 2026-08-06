@@ -44,10 +44,10 @@ export function BAUD_RATE(): number { // 1秒で送るシグナル数[baud]
 	return 1000 / SIGNAL_MS();
 }
 
-export function SIGNAL_FREQS(): Uint16Array {
-	let list: Uint16Array = new Uint16Array(CHANNELS());
+export function SIGNAL_FREQS(): number[] {
+	let list: number[] = [];
 	for(let i: number = 0; i < CHANNELS(); ++i)
-		list[i] = SIGNAL_FREQ_START() + (i * SIGNAL_FREQ_WIDTH());
+		list.push(SIGNAL_FREQ_START() + (i * SIGNAL_FREQ_WIDTH()));
 	return list;
 }
 export function SAMPLES_COUNT(): number {

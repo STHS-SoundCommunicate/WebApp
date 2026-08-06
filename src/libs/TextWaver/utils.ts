@@ -27,17 +27,6 @@ export function isEqual(a: ArrayLike<number>, b: ArrayLike<number>): boolean {
 // utf-8 only
 // audioProcessor.tsで読むときにTextEncoderを呼び出すとエラーになるので、関数内で毎回生成
 
-export function str2bits(str: string): Uint8Array{
-	const encodedData: Uint8Array = str2bytes(str);
-	let result: Uint8Array = new Uint8Array(encodedData.length * 8); // 8bit = 1byte
-	let key: number = 0;
-	encodedData.forEach((byte: number): void => {
-		for(let i: number = 0; i < 8; ++i)
-			result[key++] = ((byte >> (7 - i)) & 1);
-	});
-	return result;
-}
-
 export function str2bytes(str: string): Uint8Array {
 	return (new TextEncoder).encode(str); // 1Byte区切りのデータ
 }
@@ -64,7 +53,7 @@ export interface ConstValues {
 	SIGNAL_FREQ_START: number;
 	SIGNAL_FREQ_WIDTH: number;
 	PREAMBLE: number[];
-	SIGNAL_FREQS: Uint16Array;
+	SIGNAL_FREQS: number[];
 	SIGNAL_MS: number;
 	SAMPLES_COUNT: number;
 	useFFT: boolean;

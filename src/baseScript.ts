@@ -18,6 +18,17 @@ export function onJoin(room: string) {
     $('#roomId').text(room);
 }
 
+export function listIds(data: {id: number, string_data: string}[], socket: Socket | undefined = undefined) {
+    const ul = $('.data_list');
+    ul.empty();
+    data.forEach((item) => {
+        const li = $('<button>').text(item.id).attr('id', `exp_data_${item.id}`).addClass('data').on('click', () => {
+            socket?.emit('selectId', item.id);
+        });
+        ul.append(li);
+    });
+}
+
 export function disconnect(socket: Socket) {
     console.log('disconnect');
     socket.disconnect();

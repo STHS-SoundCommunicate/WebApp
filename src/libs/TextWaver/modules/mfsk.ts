@@ -3,7 +3,7 @@
 // const TITLE: string = "MFSK";
 
 import { modulator } from './modulator.ts';
-import { concat, crc, isEqual, ConstValues, bytes2bits } from "../utils.ts";
+import {concat, crc, isEqual, ConstValues, bytes2bits, str2bytes} from "../utils.ts";
 import StackBuffer from "../StackBuffer.ts";
 
 // interface Complex {
@@ -398,7 +398,7 @@ export class mfsk extends modulator {
 	}
 
 	private removeRSparity(bytes: Uint8Array): Uint8Array | null{
-		try {
+		try { // TODO: ここでtryCatchするのはどうなんだ？rs_decodeがfalse返してくれ
 			return rs_decode(bytes, this.constValues.RS_ErrorLength);
 		} catch {
 			return null; //誤り数がデカすぎる
@@ -465,6 +465,12 @@ export class mfsk extends modulator {
 			result[key++] = index;
 		}
 		return result;
+	}
+
+	public str2index(str: string): Uint8Array {
+		const bytes: Uint8Array = str2bytes(str);
+		const rs_bytes: Uint8Array = this.constValues.useRS ? this.addRSparity(bytes) : bytes;
+		return this.bits2index(bytes2bits(rs_bytes));
 	}
 
 }
