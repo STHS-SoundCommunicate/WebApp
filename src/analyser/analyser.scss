@@ -3,3 +3,28 @@
   height: 30%;
   max-height: 300px;
 }
+
+.symbolCountBox {
+  //display: flex;
+  display: none; // 初期では非表示
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+
+  .symbolCountSpinButton {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+    cursor: pointer;
+    border: none;
+    background-color: transparent;
+
+    &:hover {
+      color: #FF5722;
+    }
+    &:active {
+      color: #E64A19;
+    }
+  }
+}

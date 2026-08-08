@@ -21,8 +21,23 @@
         <ul class="data_list">
 		</ul>
 
-        <canvas id="visualizer">
-		</canvas>
+        <div class="symbolCountBox">
+            <label class="symbolCounter" for="symbolCount">
+                SymbolCount: <span id="symbolCountValue">0</span>
+            </label>
+            <div class="symbolCountSlider">
+                <button type="button" id="symbolCountDown" class="symbolCountSpinButton">◀</button>
+                <input id="symbolCount" type="range" min="0" max="100" step="1" value="0">
+                <button type="button" id="symbolCountUp" class="symbolCountSpinButton">▶</button>
+            </div>
+
+        </div>
+
+
+<!--        <div class="visualizer_wrapper">-->
+            <canvas id="visualizer"></canvas>
+<!--        </div>-->
+
 
     </div>
 </body>

@@ -11,11 +11,9 @@ import StackBuffer from "../StackBuffer.ts";
 // 	im: number;
 // }
 
-import FFT from 'fft.js';
+import { fft, scoreOnFFT } from '../fft.ts';
 
-// @ts-ignore
-import { encode, decode } from '../RSCode.js'; // TODO: tsで書き直す
-import { generate_rs_parity, rs_decode } from '../../rs_codec.ts';
+import { generate_rs_parity, rs_decode } from '../rs_codec.ts';
 
 export class mfsk extends modulator {
 
@@ -55,22 +53,6 @@ export class mfsk extends modulator {
 			s_prev = s;
 		}
 		return (s_prev2 * s_prev2) + (s_prev * s_prev) - (coeff * s_prev * s_prev2); // ほんとは平方根だけど、比較できればいいので具体的な数字は必要ない
-	}
-
-	private nextPowerOfTwo(n: number): number { // 0埋め用
-		return 1 << Math.ceil(Math.log2(n)); // 1 << (32 - Math.clz32(Nd - 1));
-	}
-
-	private fft(f: Float32Array) {
-		const N: number = this.nextPowerOfTwo(f.length);
-		const fft = new FFT(N);
-		const input = new Array(N);
-		input.fill(0);
-		f.forEach((v, i) => input[i] = v);
-		const out = fft.createComplexArray();
-		fft.realTransform(out, input);
-		fft.completeSpectrum(out);
-		return out; // [ream, image, real, image, ...]
 	}
 
 
@@ -202,15 +184,6 @@ export class mfsk extends modulator {
 	// 	return fftin(sample, T, N);
 	// }
 
-	private scoreOnFFT(fft: any[], freq: number): number {
-		const N: number = fft.length / 2; // fft.length must be 2N
-		const bin: number = Math.round((freq * N) / this.constValues.SAMPLING_RATE);
-		if (bin < 0 || bin >= N / 2) return 0;
-		const real: number = fft[bin*2];
-		const imag: number = fft[bin*2 + 1];
-		return (real * real) + (imag * imag);
-	}
-
 	// private score(spectrum: Complex[], freq: number): number {
 	// 	const N: number = spectrum.length;
 	// 	const bin: number = Math.round((freq * N) / this.SAMPLING_RATE);
@@ -242,9 +215,9 @@ export class mfsk extends modulator {
 	public detectSymbolOnFFT(samples: Float32Array): number {
 		let max_freq: number = -1; // はたしてやっていい初期化なのだろうか
 		let max_db: number = -Infinity;
-		let fft = this.fft(samples);
+		let fft_array: number[] = fft(samples);
 		this.constValues.SIGNAL_FREQS.forEach((f: number, i: number): void => {
-			let score: number = this.scoreOnFFT(fft, f);
+			let score: number = scoreOnFFT(fft_array, f, this.constValues.SAMPLING_RATE);
 			if(score > max_db) {
 				max_db = score;
 				max_freq = i; // 何個目のチャンネルか
@@ -390,7 +363,7 @@ export class mfsk extends modulator {
 	}
 
 	private addRSparity(bytes: Uint8Array): Uint8Array {
-		const parity = generate_rs_parity(bytes, this.constValues.RS_ErrorLength);
+		const parity: Uint8Array = generate_rs_parity(bytes, this.constValues.RS_ErrorLength);
 		const result: Uint8Array = new Uint8Array(bytes.length + parity.length);
 		result.set(bytes);
 		result.set(parity, bytes.length);
@@ -401,7 +374,7 @@ export class mfsk extends modulator {
 		try { // TODO: ここでtryCatchするのはどうなんだ？rs_decodeがfalse返してくれ
 			return rs_decode(bytes, this.constValues.RS_ErrorLength);
 		} catch {
-			return null; //誤り数がデカすぎる
+			return null; //誤り数が多い
 		}
 	}
 
@@ -409,15 +382,6 @@ export class mfsk extends modulator {
 		const rs_bytes: Uint8Array = this.constValues.useRS ? this.addRSparity(bytes) : bytes;
 		const bits: Uint8Array = bytes2bits(rs_bytes);
 		const index: Uint8Array = this.bits2index(bits);
-
-		/*
-		if(this.constValues.useRS){
-			let temp: Uint8Array = new Uint8Array(index.length + this.constValues.RS_ErrorLength); // 訂正符号を含めれる大きさに拡大
-			temp.set(index);
-			encode(temp, this.constValues.RS_ErrorLength);
-			index = temp;
-		}
-		*/
 
 		const header: Uint8Array = this.generateHeader(index);
 

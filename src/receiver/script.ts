@@ -229,6 +229,8 @@ function drawFrequencyScale(): void {
 	canvasCtx.restore();
 }
 
+
+
 const tryStats = $('#try');
 let exp_counting: number = 1;
 let exp_isEnable: boolean = false;
@@ -242,7 +244,7 @@ function exp(payload: string, db: number, wave_data: Float32Array): void {
 	if(!exp_isEnable) return;
 	exp_isEnable = false;
 	clearCheckerTimers();
-	let data = exp_data.find((d): boolean => d.id === exp_id);
+	let data: {id: number, string_data: string} | undefined = exp_data.find((d): boolean => d.id === exp_id);
 	if(data === undefined) return;
 
 	let correct: number = 0;
@@ -284,20 +286,19 @@ let retryTimeoutId: number | undefined;
 let checkerTimeoutId: number | undefined;
 
 function clearCheckerTimers(): void {
-	if(checkerTimeoutId !== undefined) {
+	if(checkerTimeoutId) { // !== undefined
 		clearTimeout(checkerTimeoutId);
 		checkerTimeoutId = undefined;
 	}
 
-	if(retryTimeoutId !== undefined) {
+	if(retryTimeoutId) {
 		clearTimeout(retryTimeoutId);
 		retryTimeoutId = undefined;
 	}
 }
 
 function scheduleRetry(): void {
-	if(retryTimeoutId !== undefined)
-		clearTimeout(retryTimeoutId);
+	if(retryTimeoutId) clearTimeout(retryTimeoutId); // !== undefined
 
 	socket.emit('stopSound');
 
@@ -305,7 +306,7 @@ function scheduleRetry(): void {
 		retryTimeoutId = undefined;
 		socket.emit('playSound', exp_id);
 		runChecker();
-	}, 500); // 1/4秒ぐらい待っとけば前の音が残らなそう
+	}, 1000); // TODO: 1/2秒ぐらい待っとけば前の音が残らなそう
 }
 
 function runChecker() {
@@ -330,7 +331,7 @@ function runChecker() {
 			exp_counting++;
 			tryStats.text(exp_counting);
 			scheduleRetry();
-		}, SIGNAL_MS() * PREAMBLE().length * 20); // 20は適当 (ほんとは1でもいいはずだが、余裕を持たせるために大きめにしている)
+		}, SIGNAL_MS() * PREAMBLE().length * 20); // TODO: 20は適当 (ほんとは1でもいいはずだが、余裕を持たせるために大きめにしている)、プリアンブルを検出するまでにかかる時間
 	}
 }
 
