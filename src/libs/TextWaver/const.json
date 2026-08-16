@@ -9,5 +9,6 @@
   "useFFT": false,
   "useRS": false,
   "useHeaderRS": false,
-  "RS_ErrorLength": 8
+  "RS_ErrorLength": 8,
+  "Header_RS_ParityBytes": 2
 }

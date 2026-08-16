@@ -59,5 +59,6 @@ export interface ConstValues {
 	useFFT: boolean;
 	useRS: boolean;
 	RS_ErrorLength: number;
+	Header_RS_ParityBytes: number;
 	useHeaderRS: boolean;
 }

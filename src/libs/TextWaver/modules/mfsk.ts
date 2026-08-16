@@ -289,11 +289,10 @@ export class mfsk extends modulator {
 	}
 
 	private readonly crc_data: Uint8Array = new Uint8Array(4);
-	private readonly HEADER_RS_PARITY_BYTES: number = 2; //こんな書き方あるんだね
 	private readonly HEADER_INFO_SYMBOLS: number = 4; //他で書いているかもしれないので必要であれば直して
 	// ヘッダ検査部のシンボル数。
 	private headerCheckSymbols(): number {
-		return this.constValues.useHeaderRS ? this.HEADER_RS_PARITY_BYTES * 2 : 2;
+		return this.constValues.useHeaderRS ? this.constValues.Header_RS_ParityBytes * 2 : 2;
 	}
 
 	// プリアンブルを除いたヘッダ全体のシンボル数。
@@ -339,12 +338,12 @@ export class mfsk extends modulator {
 
 				let headerOk: boolean;
 				if(this.constValues.useHeaderRS) {
-					const codeword: Uint8Array = new Uint8Array(2 + this.HEADER_RS_PARITY_BYTES);
+					const codeword: Uint8Array = new Uint8Array(2 + this.constValues.Header_RS_ParityBytes);
 					codeword[0] = payload_length;
 					codeword[1] = message_id;
-					for(let i = 0; i < this.HEADER_RS_PARITY_BYTES; ++i)
+					for(let i = 0; i < this.constValues.Header_RS_ParityBytes; ++i)
 						codeword[2 + i] = (check_symbols[i * 2] << 4) | check_symbols[i * 2 + 1];
-					const corrected: Uint8Array | false = this.removeRSparity(codeword, this.HEADER_RS_PARITY_BYTES);
+					const corrected: Uint8Array | false = this.removeRSparity(codeword, this.constValues.Header_RS_ParityBytes);
 					headerOk = corrected !== false;
 					if(corrected !== false) {
 						payload_length = corrected[0];
@@ -439,7 +438,7 @@ export class mfsk extends modulator {
 
 		let check_symbols: number[];
 		if(this.constValues.useHeaderRS) {
-			const parity: Uint8Array = generate_rs_parity(new Uint8Array([len, messageId]), this.HEADER_RS_PARITY_BYTES);
+			const parity: Uint8Array = generate_rs_parity(new Uint8Array([len, messageId]), this.constValues.Header_RS_ParityBytes);
 			check_symbols = [];
 			parity.forEach((b: number): void => { check_symbols.push(b >> 4, b & 0xF); });
 		} else {
