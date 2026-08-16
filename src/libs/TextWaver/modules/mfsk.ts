@@ -339,12 +339,11 @@ export class mfsk extends modulator {
 
 				let headerOk: boolean;
 				if(this.constValues.useHeaderRS) {
-					const codeword: Uint8Array = new Uint8Array([
-						payload_length,
-						message_id,
-						(check_symbols[0] << 4) | check_symbols[1],
-						(check_symbols[2] << 4) | check_symbols[3]
-					]);
+					const codeword: Uint8Array = new Uint8Array(2 + this.HEADER_RS_PARITY_BYTES);
+					codeword[0] = payload_length;
+					codeword[1] = message_id;
+					for(let i = 0; i < this.HEADER_RS_PARITY_BYTES; ++i)
+						codeword[2 + i] = (check_symbols[i * 2] << 4) | check_symbols[i * 2 + 1];
 					const corrected: Uint8Array | false = this.removeRSparity(codeword, this.HEADER_RS_PARITY_BYTES);
 					headerOk = corrected !== false;
 					if(corrected !== false) {
