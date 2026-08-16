@@ -8,5 +8,6 @@
   "preamble": [0, 4, 8, 12],
   "useFFT": false,
   "useRS": false,
+  "useHeaderRS": false,
   "RS_ErrorLength": 8
 }

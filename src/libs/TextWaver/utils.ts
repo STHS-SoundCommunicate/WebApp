@@ -59,4 +59,5 @@ export interface ConstValues {
 	useFFT: boolean;
 	useRS: boolean;
 	RS_ErrorLength: number;
+	useHeaderRS: boolean;
 }

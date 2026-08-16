@@ -57,6 +57,9 @@ export function SAMPLES_COUNT(): number {
 export function useFFT(): boolean { return $('#const_useFFT').prop('checked'); }
 
 export function useRS(): boolean { return $('#const_useRS').prop('checked'); }
+
+export function useHeaderRS(): boolean { return $('#const_useHeaderRS').prop('checked'); }
+
 export function RS_ErrorLength(): number { return Number($(`#const_RS_ErrorLength`).val()); }
 
 
@@ -75,6 +78,7 @@ export function getAll(): ConstValues {
 			"SAMPLES_COUNT": SAMPLES_COUNT(),
 			"useFFT": useFFT(),
 			"useRS": useRS(),
+			"useHeaderRS": useHeaderRS(),
 			"RS_ErrorLength": RS_ErrorLength()
 		};
 }
