@@ -48,6 +48,7 @@ $('#fileInput').on('change', async (event: ChangeEvent) => {
 		pattern: {[key: string]: string}[],
 		wave: number[]
 	}[] = json.exp_results;
+	$('.data_list').empty();
 	listIds(data);
 	m = new mfsk(config);
 	$('.data').on('click', (e: JQuery.ClickEvent): void => {
@@ -100,10 +101,10 @@ $('#fileInput').on('change', async (event: ChangeEvent) => {
 		symbolCountInput.attr('max', payload_length - 1);
 		symbolCountInput.val(0);
 
-		symbolCountInput.on('change', () => {
+		symbolCountInput.off('change').on('change', (): void => {
 			updateSymbolCountValue();
 
-			const symbol_count: number = symbolCountInput.val() as unknown as number;
+			const symbol_count: number = Number(symbolCountInput.val());
 			if(symbol_count > payload_length) {
 				symbolCountInput.val(payload_length);
 				updateSymbolCountValue();
@@ -112,7 +113,7 @@ $('#fileInput').on('change', async (event: ChangeEvent) => {
 
 			const wave: Float32Array = payload.slice(symbol_count * config.SAMPLES_COUNT, (symbol_count + 1) * config.SAMPLES_COUNT);
 			const fft_array: number[] = fft(wave);
-			config.SIGNAL_FREQS.forEach((freq: number) => {
+			config.SIGNAL_FREQS.forEach((freq: number): void => {
 				const score: number = scoreOnFFT(fft_array, freq, config.SAMPLING_RATE);
 				console.log(`${freq} Hz: ${score}`);
 			});
@@ -156,13 +157,13 @@ function visualize(wave: Float32Array, sampleRate: number, signal_freqs: number[
 		data: {
 			labels: labels,
 			datasets: [
-				// {
-				// 	label: 'Wave',
-				// 	data: wave,
-				// 	// fill: false,
-				// 	borderColor: 'rgb(75, 192, 192)',
-				// 	tension: 0.1
-				// },
+				{
+					label: 'Wave',
+					data: normalized_spectrum,
+					// fill: false,
+					borderColor: 'rgb(75, 192, 192)',
+					tension: 0.1
+				},
 				{
 					label: 'Signal Frequencies',
 					data: labels.map((labelFreq: number): number | null => {
@@ -193,8 +194,8 @@ function visualize(wave: Float32Array, sampleRate: number, signal_freqs: number[
 						display: true,
 						text: 'Frequency [Hz]'
 					},
-					min: minFrequency,
-					max: maxFrequency,
+					min: minFrequency - 100,
+					max: maxFrequency + 100,
 					ticks: {
 						stepSize: markerStepHz
 					}

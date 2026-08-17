@@ -18,9 +18,9 @@ export function onJoin(room: string) {
     $('#roomId').text(room);
 }
 
-export function listIds(data: {id: number, string_data: string}[], socket: Socket | undefined = undefined) {
+export function listIds(data: {id: number, string_data: string}[], socket: Socket | undefined = undefined): void {
     const ul = $('.data_list');
-    ul.empty();
+    // ul.empty();
     data.forEach((item) => {
         const li = $('<button>').text(item.id).attr('id', `exp_data_${item.id}`).addClass('data').on('click', () => {
             socket?.emit('selectId', item.id);
@@ -42,14 +42,17 @@ export function disconnect(socket: Socket) {
 export function syncConst(socket: Socket) {
     socket.on('syncConst', (config: { [key: string]: string | number | number[] }) => {
 		Object.keys(config).forEach((key: string) => {
+			const c = $(`#const_${key}`);
+			if(typeof config[key] === 'boolean') {
+				c.prop('checked', config[key]);
+				return;
+			}
 			if(config[key] instanceof Array) config[key] = config[key].join(', ');
-			$(`#const_${key}`).val(config[key]);
+			c.val(config[key]);
 		})
 	});
 
     $('.const_params').on('change', () => {
         socket.emit('syncConst', getAll());
-    }).on('click', () => {
-		socket.emit('syncConst', getAll());
-	});
+    });
 }

@@ -239,15 +239,12 @@ export class mfsk extends modulator {
 			for(let i: number = this.constValues.BITS_PER_SIGNAL - 1; i >= 0; --i)
 				bits.push((s >> i) & 1);
 		});
-		// let bytes: number[] = [];
 		const bytes: Uint8Array = new Uint8Array(bits.length / 8); // ほんとに要素数あってる？
 		for(let i: number = 0; i < bits.length - 7; i += 8) {
 			let b: number = 0;
 			bits.slice(i, i + 8).forEach((bit: number): void => { b = (b << 1) | bit; });
-			// bytes.push(b);
 			bytes[Math.floor(i / 8)] = b;
 		}
-		// return (new Uint8Array(bytes));
 		return bytes;
 	}
 
@@ -341,9 +338,9 @@ export class mfsk extends modulator {
 					const codeword: Uint8Array = new Uint8Array(2 + this.constValues.Header_RS_ParityBytes);
 					codeword[0] = payload_length;
 					codeword[1] = message_id;
-					for(let i = 0; i < this.constValues.Header_RS_ParityBytes; ++i)
+					for(let i: number = 0; i < this.constValues.Header_RS_ParityBytes; ++i)
 						codeword[2 + i] = (check_symbols[i * 2] << 4) | check_symbols[i * 2 + 1];
-					const corrected: Uint8Array | false = this.removeRSparity(codeword, this.constValues.Header_RS_ParityBytes);
+					const corrected: Uint8Array | false = this.removeRSparity(codeword);
 					headerOk = corrected !== false;
 					if(corrected !== false) {
 						payload_length = corrected[0];
@@ -396,8 +393,8 @@ export class mfsk extends modulator {
 		return result;
 	}
 
-	private removeRSparity(bytes: Uint8Array, parityBytes: number = this.constValues.RS_ErrorLength): Uint8Array | false{
-		return rs_decode(bytes, parityBytes);
+	private removeRSparity(bytes: Uint8Array): Uint8Array | false {
+		return rs_decode(bytes, this.constValues.RS_ErrorLength);
 	}
 
 	public generateWave(bytes: Uint8Array): Float32Array { // bytes: 生のデータ
