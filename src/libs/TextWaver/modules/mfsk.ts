@@ -289,6 +289,16 @@ export class mfsk extends modulator {
 	}
 
 	private readonly crc_data: Uint8Array = new Uint8Array(4);
+	private readonly HEADER_INFO_SYMBOLS: number = 4; //他で書いているかもしれないので必要であれば直して
+	// ヘッダ検査部のシンボル数。
+	private headerCheckSymbols(): number {
+		return this.constValues.useHeaderRS ? this.constValues.Header_RS_ParityBytes * 2 : 2;
+	}
+
+	// プリアンブルを除いたヘッダ全体のシンボル数。
+	private headerSymbols(): number {
+		return this.HEADER_INFO_SYMBOLS + this.headerCheckSymbols();
+	}
 
 	private wait: number = 0;
 
@@ -311,7 +321,7 @@ export class mfsk extends modulator {
 				let buf_size: number = this.recents.length;
 				let buf: Float32Array = this.recents.slice(Math.min(header_index, buf_size));
 				let overshoot: number = Math.max(0, header_index - buf_size);
-				let stream_chunk: Float32Array = yield* stackBuffer.waitSamples(overshoot + 6 * this.constValues.SAMPLES_COUNT - buf.length);
+				let stream_chunk: Float32Array = yield* stackBuffer.waitSamples(overshoot + this.headerSymbols() * this.constValues.SAMPLES_COUNT - buf.length);
 				let header: StackBuffer = new StackBuffer(concat(buf, stream_chunk).slice(overshoot));
 
 				let pl_hi: number = this.detectSymbol(header.readSamples(this.constValues.SAMPLES_COUNT)),
@@ -322,16 +332,32 @@ export class mfsk extends modulator {
 					mi_lo: number = this.detectSymbol(header.readSamples(this.constValues.SAMPLES_COUNT));
 				let message_id: number = (mi_hi << 4) | mi_lo;
 
-				let c8_hi: number = this.detectSymbol(header.readSamples(this.constValues.SAMPLES_COUNT)),
-					c8_lo: number = this.detectSymbol(header.readSamples(this.constValues.SAMPLES_COUNT));
-				let crc_raw: number = (c8_hi << 4) | c8_lo;
+				let check_symbols: number[] = [];
+				for(let i: number = 0; i < this.headerCheckSymbols(); ++i)
+					check_symbols.push(this.detectSymbol(header.readSamples(this.constValues.SAMPLES_COUNT)));
 
-				this.crc_data[0] = pl_hi;
-				this.crc_data[1] = pl_lo;
-				this.crc_data[2] = mi_hi;
-				this.crc_data[3] = mi_lo; // 0~255なはず
+				let headerOk: boolean;
+				if(this.constValues.useHeaderRS) {
+					const codeword: Uint8Array = new Uint8Array(2 + this.constValues.Header_RS_ParityBytes);
+					codeword[0] = payload_length;
+					codeword[1] = message_id;
+					for(let i = 0; i < this.constValues.Header_RS_ParityBytes; ++i)
+						codeword[2 + i] = (check_symbols[i * 2] << 4) | check_symbols[i * 2 + 1];
+					const corrected: Uint8Array | false = this.removeRSparity(codeword, this.constValues.Header_RS_ParityBytes);
+					headerOk = corrected !== false;
+					if(corrected !== false) {
+						payload_length = corrected[0];
+						message_id = corrected[1];
+					}
+				} else {
+					this.crc_data[0] = pl_hi;
+					this.crc_data[1] = pl_lo;
+					this.crc_data[2] = mi_hi;
+					this.crc_data[3] = mi_lo; // 0~255なはず
+					headerOk = ((check_symbols[0] << 4) | check_symbols[1]) === crc(this.crc_data);
+				}
 
-				if(crc_raw === crc(this.crc_data)) {
+				if(headerOk) {
 
 					log([mfsk.HEADER_CRC_CHECK_PASSED]);
 
@@ -341,12 +367,12 @@ export class mfsk extends modulator {
 					for(let i: number = 0; i < payload_length; ++i)
 						payload_symbols[i] = this.detectSymbol(payloads.readSamples(this.constValues.SAMPLES_COUNT));
 
-					log(`[${this.constValues.PREAMBLE.join(', ')}, ${this.crc_data.join(', ')}, ${c8_hi}, ${c8_lo}, ${payload_symbols.join(', ')}]`);
+					log(`[${this.constValues.PREAMBLE.join(', ')}, ${pl_hi}, ${pl_lo}, ${mi_hi}, ${mi_lo}, ${check_symbols.join(', ')}, ${payload_symbols.join(', ')}]`);
 
 					let payload_bytes: Uint8Array = this.symbol2bytes(payload_symbols);
 					if(this.constValues.useRS) {
-						const corrected: Uint8Array | null = this.removeRSparity(payload_bytes);
-						if(corrected === null) {
+						const corrected: Uint8Array | false = this.removeRSparity(payload_bytes);
+						if(corrected === false) {
 							log([mfsk.RS_DECODE_FAILED]);
 							continue;
 						}
@@ -370,12 +396,8 @@ export class mfsk extends modulator {
 		return result;
 	}
 
-	private removeRSparity(bytes: Uint8Array): Uint8Array | null{
-		try { // TODO: ここでtryCatchするのはどうなんだ？rs_decodeがfalse返してくれ
-			return rs_decode(bytes, this.constValues.RS_ErrorLength);
-		} catch {
-			return null; //誤り数が多い
-		}
+	private removeRSparity(bytes: Uint8Array, parityBytes: number = this.constValues.RS_ErrorLength): Uint8Array | false{
+		return rs_decode(bytes, parityBytes);
 	}
 
 	public generateWave(bytes: Uint8Array): Float32Array { // bytes: 生のデータ
@@ -413,10 +435,18 @@ export class mfsk extends modulator {
 		const payload_length_symbols: number[]  = [len >> 4, len & 0xF];
 		const message_id_symbols: number[] = [messageId >> 4, messageId & 0xF];
 		const header_info_symbols: number[] = payload_length_symbols.concat(message_id_symbols);
-		const c: number = crc(new Uint8Array(header_info_symbols));
-		// console.log(`info_data: ${header_info_symbols}, crc: ${c}`);
-		const cyc_symbols: number[] = [c >> 4, c & 0xF];
-		return new Uint8Array(this.constValues.PREAMBLE.concat(header_info_symbols).concat(cyc_symbols));
+
+		let check_symbols: number[];
+		if(this.constValues.useHeaderRS) {
+			const parity: Uint8Array = generate_rs_parity(new Uint8Array([len, messageId]), this.constValues.Header_RS_ParityBytes);
+			check_symbols = [];
+			parity.forEach((b: number): void => { check_symbols.push(b >> 4, b & 0xF); });
+		} else {
+			const c: number = crc(new Uint8Array(header_info_symbols)); // 0~15の値が入った4byte列が入力
+			// console.log(`info_data: ${header_info_symbols}, crc: ${c}`);
+			check_symbols = [c >> 4, c & 0xF];
+		}
+		return new Uint8Array(this.constValues.PREAMBLE.concat(header_info_symbols).concat(check_symbols));
 	}
 
 	private bits2index(bits: Uint8Array): Uint8Array { // mfskでは4bitを1indexとして管理するため、4bitごとに管理

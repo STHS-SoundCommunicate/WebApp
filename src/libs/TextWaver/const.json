@@ -8,5 +8,7 @@
   "preamble": [0, 4, 8, 12],
   "useFFT": false,
   "useRS": false,
-  "RS_ErrorLength": 8
+  "useHeaderRS": false,
+  "RS_ErrorLength": 8,
+  "Header_RS_ParityBytes": 2
 }

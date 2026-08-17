@@ -84,7 +84,7 @@ async function toggleSound() {
 					if(exp_isEnable) isReceived = true;
 				break;
 				case mfsk.HEADER_CRC_CHECK_FAILED:
-					log('Header CRC Check Failed');
+					log('Header Check Failed');
 					if(exp_isEnable) {
 						exp_counting++;
 						tryStats.text(exp_counting);
@@ -92,7 +92,7 @@ async function toggleSound() {
 					}
 				break;
 				case mfsk.HEADER_CRC_CHECK_PASSED:
-					log('Header CRC Check Passed');
+					log('Header Check Passed');
 					log('Waiting for payload...');
 				break;
 				case mfsk.PAYLOAD_DETECTED:
