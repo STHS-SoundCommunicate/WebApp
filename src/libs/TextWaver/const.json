@@ -4,7 +4,7 @@
   "BPS": 200,
   "SAMPLING_RATE": 44100,
   "SIGNAL_FREQ_START": 18000,
-  "SIGNAL_FREQ_WIDTH": 125,
+  "SIGNAL_FREQ_WIDTH": 100,
   "PREAMBLE": [0, 4, 8, 12],
   "useFFT": false,
   "useRS": false,
