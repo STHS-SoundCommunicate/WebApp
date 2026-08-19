@@ -27,14 +27,14 @@ Object.entries(_const).forEach(([key, value]: [string, number | number[] | boole
 
 });
 
-export function CHANNELS(): number { return Number($(`#const_channels`).val()); }
-export function BITS_PER_SIGNAL(): number { return Number($(`#const_bits_per_signal`).val()); }
-export function BPS(): number { return Number($(`#const_bps`).val()); }
-export function SAMPLING_RATE(): number { return Number($(`#const_sampling_rate`).val()); }
-export function SIGNAL_FREQ_START(): number { return Number($(`#const_signal_freq_start`).val()); }
-export function SIGNAL_FREQ_WIDTH(): number { return Number($(`#const_signal_freq_width`).val()); }
+export function CHANNELS(): number { return Number($(`#const_CHANNELS`).val()); }
+export function BITS_PER_SIGNAL(): number { return Number($(`#const_BITS_PER_SIGNAL`).val()); }
+export function BPS(): number { return Number($(`#const_BPS`).val()); }
+export function SAMPLING_RATE(): number { return Number($(`#const_SAMPLING_RATE`).val()); }
+export function SIGNAL_FREQ_START(): number { return Number($(`#const_SIGNAL_FREQ_START`).val()); }
+export function SIGNAL_FREQ_WIDTH(): number { return Number($(`#const_SIGNAL_FREQ_WIDTH`).val()); }
 export function PREAMBLE(): number[] {
-	let str: string = String($(`#const_preamble`).val());
+	let str: string = String($(`#const_PREAMBLE`).val());
 	return str.split(',').map(s => Number(s.trim()));
 }
 export function SIGNAL_MS(): number { // 1シグナルの時間[ms]

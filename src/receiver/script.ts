@@ -88,7 +88,8 @@ async function toggleSound() {
 					if(exp_isEnable) {
 						exp_counting++;
 						tryStats.text(exp_counting);
-						scheduleRetry();
+						isReceived = false;
+						// scheduleRetry();
 					}
 				break;
 				case mfsk.HEADER_CRC_CHECK_PASSED:

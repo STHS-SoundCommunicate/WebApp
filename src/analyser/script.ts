@@ -1,9 +1,8 @@
 import $ from 'jquery';
 import { ConstValues } from "../libs/TextWaver/utils.ts";
-import { listIds } from "../baseScript.ts";
 import {mfsk} from "../libs/TextWaver/modules/mfsk.ts";
 import ChangeEvent = JQuery.ChangeEvent;
-import {fft, getNormalizedSpectrum, scoreOnFFT} from "../libs/TextWaver/fft.ts";
+import {fft, getNormalizedSpectrum} from "../libs/TextWaver/fft.ts";
 
 let m: mfsk;
 
@@ -48,7 +47,16 @@ $('#fileInput').on('change', async (event: ChangeEvent) => {
 		pattern: {[key: string]: string}[],
 		wave: number[]
 	}[] = json.exp_results;
-	listIds(data);
+
+	const ul = $('.data_list');
+	ul.empty();
+	exp_results.forEach((item: {id: number, wrong: number}): void => {
+		const li = $('<button>').text(item.id).attr('id', `exp_data_${item.id}`).addClass('data');
+		if(item.wrong > 0)
+			li.css('background-color', 'lightgreen');
+		ul.append(li);
+	});
+
 	m = new mfsk(config);
 	$('.data').on('click', (e: JQuery.ClickEvent): void => {
 		const target = $(e.target);
@@ -100,10 +108,10 @@ $('#fileInput').on('change', async (event: ChangeEvent) => {
 		symbolCountInput.attr('max', payload_length - 1);
 		symbolCountInput.val(0);
 
-		symbolCountInput.on('change', () => {
+		symbolCountInput.off('change').on('change', (): void => {
 			updateSymbolCountValue();
 
-			const symbol_count: number = symbolCountInput.val() as unknown as number;
+			const symbol_count: number = Number(symbolCountInput.val());
 			if(symbol_count > payload_length) {
 				symbolCountInput.val(payload_length);
 				updateSymbolCountValue();
@@ -111,16 +119,25 @@ $('#fileInput').on('change', async (event: ChangeEvent) => {
 			}
 
 			const wave: Float32Array = payload.slice(symbol_count * config.SAMPLES_COUNT, (symbol_count + 1) * config.SAMPLES_COUNT);
-			const fft_array: number[] = fft(wave);
-			config.SIGNAL_FREQS.forEach((freq: number) => {
-				const score: number = scoreOnFFT(fft_array, freq, config.SAMPLING_RATE);
-				console.log(`${freq} Hz: ${score}`);
-			});
+
+			// const fft_array: number[] = fft(wave);
+			// config.SIGNAL_FREQS.forEach((freq: number): void => {
+			// 	const score: number = scoreOnFFT(fft_array, freq, config.SAMPLING_RATE);
+			// 	console.log(`${freq} Hz: ${score}`);
+			// });
+
 			visualize(wave, config.SAMPLING_RATE, config.SIGNAL_FREQS, config.SIGNAL_FREQ_WIDTH);
 
 			const w_index_on: number = w_index[symbol_count];
 			const c_index_on: number = c_index[symbol_count];
-			console.log(`${c_index_on} -> ${w_index_on}`);
+			// console.log(`${c_index_on} -> ${w_index_on}`);
+			const stats = $('#stats');
+			stats.text(`${c_index_on} -> ${w_index_on}`);
+			if(w_index_on === c_index_on) {
+				stats.css('background-color', '').css('color', '');
+			} else {
+				stats.css('background-color', 'red').css('color', 'white');
+			}
 
 		});
 		$('#symbolCountDown').trigger('click');
@@ -146,7 +163,7 @@ function visualize(wave: Float32Array, sampleRate: number, signal_freqs: number[
     const binMax: number = Math.round((maxFrequency * N) / sampleRate);
     if (binMin < 0 || binMax > N - 1) return;
 	normalized_spectrum = normalized_spectrum.slice(binMin, binMax + 1);
-	console.log(normalized_spectrum);
+	// console.log(normalized_spectrum);
 
 	const labels: number[] = Array.from(normalized_spectrum, (_: any, i: number): number => (i + binMin) * binWidth); // x軸のラベルを周波数に変換
 
@@ -156,13 +173,13 @@ function visualize(wave: Float32Array, sampleRate: number, signal_freqs: number[
 		data: {
 			labels: labels,
 			datasets: [
-				// {
-				// 	label: 'Wave',
-				// 	data: wave,
-				// 	// fill: false,
-				// 	borderColor: 'rgb(75, 192, 192)',
-				// 	tension: 0.1
-				// },
+				{
+					label: 'Wave',
+					data: normalized_spectrum,
+					// fill: false,
+					borderColor: 'rgb(75, 192, 192)',
+					tension: 0.1
+				},
 				{
 					label: 'Signal Frequencies',
 					data: labels.map((labelFreq: number): number | null => {
@@ -193,8 +210,8 @@ function visualize(wave: Float32Array, sampleRate: number, signal_freqs: number[
 						display: true,
 						text: 'Frequency [Hz]'
 					},
-					min: minFrequency,
-					max: maxFrequency,
+					min: minFrequency - 100,
+					max: maxFrequency + 100,
 					ticks: {
 						stepSize: markerStepHz
 					}
