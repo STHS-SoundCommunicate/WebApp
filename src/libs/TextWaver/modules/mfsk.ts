@@ -274,7 +274,13 @@ export class mfsk extends modulator {
 		let temp_max: number = 0;
 		let start_preamble: number = phase_offset;
 		for(let i: number = start_preamble; i < phase_offset + this.HALF_SAMPLE_COUNT; ++i) {
-			let score: number = this.goertzel(this.recents.slice(i, i + this.HALF_SAMPLE_COUNT), this.constValues.SIGNAL_FREQS[0]); // TODO: 計算効率の向上はできないか？
+
+			let score: number;
+			if(this.constValues.useFFT) {
+				score = scoreOnFFT(fft(this.recents.slice(i, i + this.HALF_SAMPLE_COUNT)), this.constValues.SIGNAL_FREQS[0], this.constValues.SAMPLING_RATE);
+			} else {
+				score = this.goertzel(this.recents.slice(i, i + this.HALF_SAMPLE_COUNT), this.constValues.SIGNAL_FREQS[0]); // TODO: 計算効率の向上はできないか？
+			}
 			if(score > temp_max) {
 				temp_max = score;
 				start_preamble = i;
