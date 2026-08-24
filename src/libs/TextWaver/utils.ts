@@ -57,6 +57,7 @@ export interface ConstValues {
 	SIGNAL_MS: number;
 	SAMPLES_COUNT: number;
 	useFFT: boolean;
+	useFFTPreambleChecker: boolean;
 	useRS: boolean;
 	RS_ErrorLength: number;
 	Header_RS_ParityBytes: number;

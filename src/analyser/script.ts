@@ -96,13 +96,16 @@ $('#fileInput').on('change', async (event: ChangeEvent) => {
 			}
 		}
 
-		console.log(`Correct:\n${c_index.join(', ')}`);
-		console.log(`Detect:\n${w_index.join(', ')}`);
-		console.log(`Correct: ${correct} / Wrong: ${wrong} / Total: ${payload_length}`);
-
 		console.log(`CorrectCount: ${JSON.stringify(c_p_count)}`);
 		console.log(`WrongCount: ${JSON.stringify(w_p_count)}`);
 
+		$('#result').html(`
+		Detect: ${w_index.join(', ')}<br>
+		Correct: ${c_index.join(', ')}<br>
+		Correct: ${correct} / Wrong: ${wrong} / Total: ${payload_length}<br>
+		Try: ${result.try}<br>
+		db: ${result.db} dBFS
+		`);
 
 		counter.css('display', 'flex');
 		symbolCountInput.attr('max', payload_length - 1);

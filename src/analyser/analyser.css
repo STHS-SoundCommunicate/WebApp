@@ -3,6 +3,9 @@
   height: 30%;
   max-height: 300px; }
 
+#result {
+  text-align: center; }
+
 .symbolCountBox {
   display: none;
   flex-direction: column;

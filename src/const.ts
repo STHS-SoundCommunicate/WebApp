@@ -56,6 +56,8 @@ export function SAMPLES_COUNT(): number {
 
 export function useFFT(): boolean { return $('#const_useFFT').prop('checked'); }
 
+export function useFFTPreambleChecker(): boolean { return $('#const_useFFTPreambleChecker').prop('checked'); }
+
 export function useRS(): boolean { return $('#const_useRS').prop('checked'); }
 
 export function useHeaderRS(): boolean { return $('#const_useHeaderRS').prop('checked'); }
@@ -77,6 +79,7 @@ export function getAll(): ConstValues {
 			"SIGNAL_MS": SIGNAL_MS(),
 			"SAMPLES_COUNT": SAMPLES_COUNT(),
 			"useFFT": useFFT(),
+			"useFFTPreambleChecker": useFFTPreambleChecker(),
 			"useRS": useRS(),
 			"useHeaderRS": useHeaderRS(),
 			"RS_ErrorLength": RS_ErrorLength(),
