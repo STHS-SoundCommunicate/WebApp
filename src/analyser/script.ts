@@ -31,8 +31,8 @@ $('#fileInput').on('change', async (event: ChangeEvent) => {
 	// @ts-ignore // Uint16を直接保存してたのは愚策でした
 	if(config.SIGNAL_FREQS.data !== undefined) {
 		// @ts-ignore
-		const uint8Array = new Uint8Array(config.SIGNAL_FREQS.data);
-		config.SIGNAL_FREQS = Array.from(new Uint16Array(uint8Array.buffer));
+		const uint8 = new Uint8Array(config.SIGNAL_FREQS.data);
+		config.SIGNAL_FREQS = Array.from(new Uint16Array(uint8.buffer));
 	}
 	console.log(config);
 

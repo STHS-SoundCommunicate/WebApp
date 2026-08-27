@@ -22,6 +22,7 @@ let audioCtx: AudioContext | undefined;
 let stream: MediaStream | undefined;
 
 async function startRecord(onMessage: (e: MessageEvent) => void, config = defaultConst) {
+	if(stream instanceof MediaStream) return stream;
 	const values: ConstValues = createConstValues(config);
 
 	//@ts-ignore
