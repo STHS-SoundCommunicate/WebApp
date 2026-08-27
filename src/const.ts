@@ -65,6 +65,8 @@ export function useHeaderRS(): boolean { return $('#const_useHeaderRS').prop('ch
 export function RS_ErrorLength(): number { return Number($(`#const_RS_ErrorLength`).val()); }
 export function Header_RS_ParityBytes(): number { return Number($(`#const_Header_RS_ParityBytes`).val()); }
 
+export function useAutoRSLength(): boolean { return $('#const_useAutoRSLength').prop('checked'); }
+
 import { ConstValues } from "./libs/TextWaver/utils.ts";
 export function getAll(): ConstValues {
 	return {
@@ -77,10 +79,12 @@ export function getAll(): ConstValues {
 			"PREAMBLE": PREAMBLE(),
 			"SIGNAL_FREQS": SIGNAL_FREQS(),
 			"SIGNAL_MS": SIGNAL_MS(),
+			"BAUD_RATE": BAUD_RATE(),
 			"SAMPLES_COUNT": SAMPLES_COUNT(),
 			"useFFT": useFFT(),
 			"useFFTPreambleChecker": useFFTPreambleChecker(),
 			"useRS": useRS(),
+			"useAutoRSLength": useAutoRSLength(),
 			"useHeaderRS": useHeaderRS(),
 			"RS_ErrorLength": RS_ErrorLength(),
 			"Header_RS_ParityBytes": Header_RS_ParityBytes()

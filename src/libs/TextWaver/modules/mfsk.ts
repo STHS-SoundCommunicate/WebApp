@@ -264,7 +264,9 @@ export class mfsk extends modulator {
 
 					let payload_bytes: Uint8Array = this.symbol2bytes(payload_symbols);
 					if(this.constValues.useRS) {
-						const parity_len: number = Math.floor(payload_bytes.length / 3); // payload + parity
+						let parity_len: number = this.constValues.RS_ErrorLength;
+						if(this.constValues.useAutoRSLength)
+							parity_len = Math.floor(payload_bytes.length / 3); // payload + parity
 						console.log(parity_len);
 						const corrected: Uint8Array | false = this.removeRSparity(payload_bytes, parity_len);
 						if(corrected === false) {
@@ -296,7 +298,9 @@ export class mfsk extends modulator {
 	}
 
 	public generateWave(bytes: Uint8Array): Float32Array { // bytes: 生のデータ
-		const parity_len: number = Math.floor(bytes.length / 2);
+		let parity_len: number = this.constValues.RS_ErrorLength;
+		if(this.constValues.useAutoRSLength)
+			parity_len = Math.floor(bytes.length / 2);
 		console.log(parity_len);
 		const rs_bytes: Uint8Array = this.constValues.useRS ? this.addRSparity(bytes, parity_len) : bytes;
 		const bits: Uint8Array = bytes2bits(rs_bytes);
@@ -360,7 +364,9 @@ export class mfsk extends modulator {
 
 	public str2index(str: string): Uint8Array {
 		const bytes: Uint8Array = str2bytes(str);
-		const parity_len: number = Math.floor(bytes.length / 2);
+		let parity_len: number = this.constValues.RS_ErrorLength;
+		if(this.constValues.useAutoRSLength)
+			parity_len = Math.floor(bytes.length / 2);
 		const rs_bytes: Uint8Array = this.constValues.useRS ? this.addRSparity(bytes, parity_len) : bytes;
 		return this.bits2index(bytes2bits(rs_bytes));
 	}

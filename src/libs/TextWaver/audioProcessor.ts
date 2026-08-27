@@ -2,6 +2,8 @@ import { mfsk } from './modules/mfsk.ts';
 import { modulator } from "./modules/modulator.ts";
 import StackBuffer from "./StackBuffer.ts";
 
+import defaultConst from './const.json';
+
 // AudioWorkletProcessorはブラウザ側に存在し、このクラスをそこに渡すので、IDE補完ができない。
 // https://developer.mozilla.org/ja/docs/Web/API/AudioWorkletProcessor
 // @ts-ignore
@@ -14,7 +16,7 @@ class audioProcessor extends AudioWorkletProcessor {
 	constructor(options: AudioWorkletNodeOptions) {
 		super();
 		this.stackBuffer = new StackBuffer(new Float32Array(0));
-		this.m = new mfsk(options.processorOptions); // constが書き換えられる可能性のために毎回生成
+		this.m = new mfsk(options.processorOptions ? options.processorOptions : defaultConst); // constが書き換えられる可能性のために毎回生成
 		const log = (s: any) => {
 			// @ts-ignore
 			this.port.postMessage(s);

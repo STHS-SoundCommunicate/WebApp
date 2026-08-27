@@ -6,10 +6,11 @@
   "SIGNAL_FREQ_START": 18000,
   "SIGNAL_FREQ_WIDTH": 100,
   "PREAMBLE": [0, 4, 8, 12],
-  "useFFT": false,
-  "useFFTPreambleChecker": false,
-  "useRS": false,
-  "useHeaderRS": false,
+  "useFFT": true,
+  "useFFTPreambleChecker": true,
+  "useRS": true,
+  "useAutoRSLength": false,
+  "useHeaderRS": true,
   "RS_ErrorLength": 8,
   "Header_RS_ParityBytes": 2
 }

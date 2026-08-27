@@ -46,10 +46,11 @@ async function toggleSound() {
 	try {
 
 		if(stream instanceof MediaStream) {
-			log('Stopping microphone...');
-			stream.getTracks().forEach((t: MediaStreamTrack): void => t.stop());
-			log('Microphone is stopped');
+			log('Stopping TextWaver...');
+			await TextWaver.stopRecord();
 			stream = undefined;
+			log('TextWaver is stopped');
+
 			stats.text('録音を停止しました');
 			button.text('Listen');
 			await audioCtx.close();
@@ -59,19 +60,10 @@ async function toggleSound() {
 
 		clearLog();
 
-		// @ts-ignore TODO: いいのだろうか
-		audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLING_RATE() });
-		analyser = audioCtx.createAnalyser();
-		bufferLength = analyser.frequencyBinCount;
-		dataArray = new Uint8Array(bufferLength);
-		log('audioCtx created');
 
-		await audioCtx.audioWorklet.addModule(processorUrl);
-		audioProcessorNode = new AudioWorkletNode(audioCtx, 'audio-processor', {
-			processorOptions: getAll()
-		});
+		log('Preparing TextWaver...');
 
-		audioProcessorNode.port.onmessage = (e: MessageEvent): void => {
+		const onMessage = (e: MessageEvent): void => {
 			if(stream === undefined) return;
 			if(!(e.data instanceof Array)) {
 				log(e.data);
@@ -123,7 +115,7 @@ async function toggleSound() {
 					}
 
 					toggleSound();
-					stats.text("受信しました: " + str);
+					stats.text("受信しました: " + str); // TODO: これ系が動作してなさそう！！
 				break;
 				case mfsk.RS_DECODE_FAILED:
 					log('RS Decode Failed');
@@ -139,25 +131,19 @@ async function toggleSound() {
 			}
 		};
 
-		log("audioProcessor is ready");
+		stream = await TextWaver.startRecord(onMessage, getAll());
 
-		log("Preparing microphone...");
-		stream = await navigator.mediaDevices.getUserMedia(
-			{
-				audio: { // https://note.com/npaka/n/n87acd80a4266
-					echoCancellation: false,
-					noiseSuppression: false,
-					sampleRate: SAMPLING_RATE(),
-					channelCount: 1,
-					autoGainControl: false
-					// volume: 1.0
-				}
-			}
-		);
+		log("TextWaver is ready");
+
+		// @ts-ignore TODO: いいのだろうか
+		audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLING_RATE() });
+		analyser = audioCtx.createAnalyser();
+		bufferLength = analyser.frequencyBinCount;
+		dataArray = new Uint8Array(bufferLength);
+
 		const source: MediaStreamAudioSourceNode = audioCtx.createMediaStreamSource(stream);
-		source.connect(audioProcessorNode);
 		source.connect(analyser);
-		log("Microphone is ready");
+
 		stats.text('録音中です...');
 		button.text('Stop');
 		visualize();
@@ -272,6 +258,7 @@ function exp(payload: string, db: number, wave_data: Float32Array): void {
 
 import { io, Socket } from 'socket.io-client';
 import {onJoin, onPair, disconnect as D, syncConst, listIds} from "../baseScript.ts";
+import TextWaver from "../libs/TextWaver/TextWaver.ts";
 let socket: Socket;
 const connect = $('#connectButton');
 const ul = $('.data_list');
