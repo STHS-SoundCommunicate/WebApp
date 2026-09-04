@@ -33,6 +33,7 @@ export class mfsk extends modulator {
 
 		this.window_1 = new Uint8Array(this.constValues.PREAMBLE.length);
 		this.window_2 = new Uint8Array(this.constValues.PREAMBLE.length);
+		console.log(this.constValues.SIGNAL_FREQS);
 	}
 
 	private goertzel(samples: Float32Array, freq: number): number {
@@ -316,10 +317,48 @@ export class mfsk extends modulator {
 		let waves: Float32Array = new Float32Array((header.length + index.length) * n_signals);
 		let key: number = 0;
 		let phase: number = 0;
+		// const sinWaver = (value: number): void => {
+		// 	const freq: number = this.constValues.SIGNAL_FREQS[value];
+		// 	for(let i: number = 0; i < n_signals; ++i)
+		// 		waves[key++] = (Math.sin((2 * Math.PI * freq * (i / this.constValues.SAMPLING_RATE)) + phase));
+		// 	phase = (phase + (2 * Math.PI * duration * freq)) % (2 * Math.PI);
+		// };
+
+		const crossfadeMs: number = 3;
+		const crossfadeSamples: number = Math.min(
+			Math.floor(this.constValues.SAMPLING_RATE * crossfadeMs / 1000),
+			Math.floor(n_signals / 2),
+		);
+		let prevFreq: number | null = null;
+		let prevPhase: number = 0;
+		const gain: number = 0.45;
 		const sinWaver = (value: number): void => {
 			const freq: number = this.constValues.SIGNAL_FREQS[value];
-			for(let i: number = 0; i < n_signals; ++i)
-				waves[key++] = (Math.sin((2 * Math.PI * freq * (i / this.constValues.SAMPLING_RATE)) + phase));
+			const startPhase: number = phase;
+
+			for(let i: number = 0; i < n_signals; ++i) {
+				const current: number = Math.sin(
+					(2 * Math.PI * freq * (i / this.constValues.SAMPLING_RATE)) + startPhase,
+				);
+
+				if(prevFreq !== null && i < crossfadeSamples) {
+					const t: number = i / crossfadeSamples;
+
+					// equal-power crossfade
+					const fadeOut: number = Math.cos(t * Math.PI / 2);
+					const fadeIn: number = Math.sin(t * Math.PI / 2);
+
+					const previous: number = Math.sin(
+						(2 * Math.PI * prevFreq * ((n_signals + i) / this.constValues.SAMPLING_RATE)) + prevPhase,
+					);
+
+					waves[key++] = ((previous * fadeOut) + (current * fadeIn) )* gain;
+				} else {
+					waves[key++] = current * gain;
+				}
+			}
+			prevFreq = freq;
+			prevPhase = startPhase;
 			phase = (phase + (2 * Math.PI * duration * freq)) % (2 * Math.PI);
 		};
 

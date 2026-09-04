@@ -31,7 +31,6 @@ let analyser: AnalyserNode;
 // https://qiita.com/takatama/items/4fe3fe787264f1f44515#%E5%AD%A6%E3%81%B6%E6%8A%80%E8%A1%93
 // https://zenn.dev/rerrah/articles/5b649722ffc3c2
 
-let audioProcessorNode: AudioWorkletNode;
 let stream: MediaStream | undefined;
 
 let isLocked: boolean = false; // 多重防止

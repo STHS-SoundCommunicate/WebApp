@@ -2,16 +2,19 @@
 import url from './audioProcessor.ts?worker&url';
 import {ConstValues} from "./utils.ts";
 import defaultConst from './const.json';
+import {SIGNAL_FREQ_START, SIGNAL_FREQ_WIDTH} from "../../const.ts";
 
 function createConstValues(config = defaultConst): ConstValues {
 
-	let values: ConstValues = config;
+	let values = config as ConstValues;
 
 	values.SIGNAL_MS = (1 / values.BPS) * values.BITS_PER_SIGNAL * 1000;
 	values.BAUD_RATE = 1000 / values.SIGNAL_MS;
 	values.SIGNAL_FREQS = [];
-	for(let i: number = 0; i < values.CHANNELS; ++i)
-		values.SIGNAL_FREQS.push(values.SIGNAL_FREQ_START + (i * values.SIGNAL_FREQ_WIDTH));
+	for(let i: number = 0; i < values.CHANNELS; ++i){
+		let freq: number = values.SIGNAL_FREQ_START + (i * values.SIGNAL_FREQ_WIDTH);
+		values.SIGNAL_FREQS.push(freq);
+	}
 	values.SAMPLES_COUNT = Math.floor(values.SAMPLING_RATE / values.BAUD_RATE);
 
 	return values;

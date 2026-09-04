@@ -46,8 +46,10 @@ export function BAUD_RATE(): number { // 1秒で送るシグナル数[baud]
 
 export function SIGNAL_FREQS(): number[] {
 	let list: number[] = [];
-	for(let i: number = 0; i < CHANNELS(); ++i)
-		list.push(SIGNAL_FREQ_START() + (i * SIGNAL_FREQ_WIDTH()));
+	for(let i: number = 0; i < CHANNELS(); ++i){
+		let freq: number = SIGNAL_FREQ_START() + (i * SIGNAL_FREQ_WIDTH());
+		list.push(freq);
+	}
 	return list;
 }
 export function SAMPLES_COUNT(): number {
