@@ -69,6 +69,8 @@ export function Header_RS_ParityBytes(): number { return Number($(`#const_Header
 
 export function useAutoRSLength(): boolean { return $('#const_useAutoRSLength').prop('checked'); }
 
+export function useCrossFade(): boolean { return $('#const_useCrossFade').prop('checked'); }
+
 import { ConstValues } from "./libs/TextWaver/utils.ts";
 export function getAll(): ConstValues {
 	return {
@@ -89,6 +91,7 @@ export function getAll(): ConstValues {
 			"useAutoRSLength": useAutoRSLength(),
 			"useHeaderRS": useHeaderRS(),
 			"RS_ErrorLength": RS_ErrorLength(),
+			"useCrossFade": useCrossFade(),
 			"Header_RS_ParityBytes": Header_RS_ParityBytes()
 		};
 }

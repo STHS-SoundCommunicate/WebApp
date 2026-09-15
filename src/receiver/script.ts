@@ -10,8 +10,6 @@ import {
 } from "../const.ts";
 
 import { decodeUTF8 } from "../libs/TextWaver/utils.ts"; // ライブラリ化するならここもまとめた方がいいかな
-// @ts-ignore
-import processorUrl from "../libs/TextWaver/audioProcessor.ts?worker&url";
 
 const button: JQuery = $('#toggleButton');
 button.on('click', toggleSound);

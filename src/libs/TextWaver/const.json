@@ -12,5 +12,6 @@
   "useAutoRSLength": false,
   "useHeaderRS": true,
   "RS_ErrorLength": 8,
-  "Header_RS_ParityBytes": 2
+  "Header_RS_ParityBytes": 2,
+  "useCrossFade":  false
 }

@@ -64,4 +64,5 @@ export interface ConstValues {
 	RS_ErrorLength: number;
 	Header_RS_ParityBytes: number;
 	useHeaderRS: boolean;
+	useCrossFade: boolean;
 }

@@ -2,7 +2,6 @@
 import url from './audioProcessor.ts?worker&url';
 import {ConstValues} from "./utils.ts";
 import defaultConst from './const.json';
-import {SIGNAL_FREQ_START, SIGNAL_FREQ_WIDTH} from "../../const.ts";
 
 function createConstValues(config = defaultConst): ConstValues {
 
