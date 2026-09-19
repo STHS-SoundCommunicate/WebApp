@@ -9,9 +9,9 @@
   "useFFT": true,
   "useFFTPreambleChecker": true,
   "useRS": true,
-  "useAutoRSLength": false,
+  "useAutoRSLength": true,
   "useHeaderRS": true,
   "RS_ErrorLength": 8,
   "Header_RS_ParityBytes": 2,
-  "useCrossFade":  false
+  "useCrossFade":  true
 }
