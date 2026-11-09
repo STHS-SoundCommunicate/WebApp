@@ -328,7 +328,7 @@ connect.on('click', () => {
 		return;
 	}
 
-	if(socket?.disconnected === false) return;
+	if(!socket?.disconnected) return;
 	socket = io();
 
 	socket.on('failedJoin', (reason: string) => {

@@ -26,7 +26,6 @@ export function isEqual(a: ArrayLike<number>, b: ArrayLike<number>): boolean {
 
 // utf-8 only
 // audioProcessor.tsで読むときにTextEncoderを呼び出すとエラーになるので、関数内で毎回生成
-
 export function str2bytes(str: string): Uint8Array {
 	return (new TextEncoder).encode(str); // 1Byte区切りのデータ
 }

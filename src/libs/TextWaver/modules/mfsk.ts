@@ -1,7 +1,3 @@
-// https://qiita.com/hiro-hiro/items/9879a297cf5b30c474e2
-
-// const TITLE: string = "MFSK";
-
 import { modulator } from './modulator.ts';
 import {concat, crc, isEqual, ConstValues, bytes2bits, str2bytes} from "../utils.ts";
 import StackBuffer from "../StackBuffer.ts";
@@ -82,8 +78,6 @@ export class mfsk extends modulator {
 		});
 		return max_freq; // return index, not [Hz]
 	}
-
-
 
 	private addSymbol(symbol: number): void {
 		this.symbols[this.symbols_index] = symbol;

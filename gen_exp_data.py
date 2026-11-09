@@ -1,4 +1,4 @@
-﻿#実験用データの生成　生成する個数を入力
+﻿#実験用データの生成 生成する個数を入力
 import random
 import json
 sample = int(input("生成するデータ数"))
