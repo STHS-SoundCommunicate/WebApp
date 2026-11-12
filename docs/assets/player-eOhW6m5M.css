@@ -1,0 +1,1 @@
+.charInput{flex-direction:column;justify-content:center;align-items:center;gap:5px;width:70%;display:flex}.charInput #charLabel{text-align:center;width:100%}.charInput #charLabel #charArea{resize:none;border-radius:10px;width:100%;height:150px}

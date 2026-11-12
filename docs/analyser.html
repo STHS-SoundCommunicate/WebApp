@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <title>Analyser</title>
+  <script type="module" crossorigin src="./assets/analyser-BxCvHZ2y.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/mfsk-BQ0j3tkr.js">
+  <link rel="stylesheet" crossorigin href="./assets/analyser-DHp-uKUK.css">
+  <link rel="stylesheet" crossorigin href="./assets/baseStyle-zm8Wafks.css">
+</head>
+<body>
+    <div class="wrapper">
+
+        <label id="fileLabel" style="display: block;">
+            Load file...
+            <input type="file" id="fileInput" accept=".json">
+        </label>
+        <ul class="data_list">
+		</ul>
+
+        <span id="result"></span>
+
+        <div class="symbolCountBox">
+            <label class="symbolCounter" for="symbolCount">
+                SymbolCount: <span id="symbolCountValue">0</span>
+            </label>
+            <div class="symbolCountSlider">
+                <button type="button" id="symbolCountDown" class="symbolCountSpinButton">◀</button>
+                <input id="symbolCount" type="range" min="0" max="100" step="1" value="0">
+                <button type="button" id="symbolCountUp" class="symbolCountSpinButton">▶</button>
+            </div>
+        </div>
+
+        <span id="stats"></span>
+
+        <canvas id="visualizer"></canvas>
+
+    </div>
+</body>
+
+
+</html>
